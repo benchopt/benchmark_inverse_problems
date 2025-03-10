@@ -8,4 +8,5 @@ from benchopt.utils import safe_import_context
 
 with safe_import_context() as import_ctx:
     from .hugging_face_torch_dataset import HuggingFaceTorchDataset
+    from .image_dataset import ImageDataset
     from .constants import constants

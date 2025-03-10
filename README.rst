@@ -19,6 +19,13 @@ Solvers:
 - Wavelet
 - DRUNet
 
+Tasks:
+
+- Denoising
+- Deblurring
+- Super-Resolution
+- Inpainting
+
 Install
 --------
 

@@ -9,7 +9,7 @@ with safe_import_context() as import_ctx:
     from torch.utils.data import DataLoader
     from torchvision import transforms
     from datasets import load_dataset
-    from benchmark_utils import HuggingFaceTorchDataset, constants
+    from benchmark_utils import HuggingFaceTorchDataset, ImageDataset, constants
     from deepinv.physics import Denoising, GaussianNoise
 
 
@@ -42,18 +42,17 @@ class Dataset(BaseDataset):
             transforms.ToTensor()
         ])
 
-        dataset_CBSD68 = load_dataset("delta-prox/BSD500")
-        train_dataset = HuggingFaceTorchDataset(dataset_CBSD68["train"], key="image", transform=transform)
+        train_dataset = ImageDataset(config.get_data_path("BSD500") / "train", transform=transform)
 
-        dataset_Set3c = load_dataset("deepinv/CBSD68")
-        test_dataset = HuggingFaceTorchDataset(dataset_Set3c["train"], key="png", transform=transform)
+        dataset_cbsd68 = load_dataset("deepinv/CBSD68")
+        test_dataset = HuggingFaceTorchDataset(dataset_cbsd68["train"], key="png", transform=transform)
 
         dinv_dataset_path = dinv.datasets.generate_dataset(
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
             device=device,
-            save_dir=config.get_data_path(key="CBSD68_BSD500"),
+            save_dir=config.get_data_path(key="BSD500_CBSD68"),
             num_workers=num_workers,
         )
 

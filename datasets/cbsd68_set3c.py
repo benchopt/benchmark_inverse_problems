@@ -53,7 +53,7 @@ class Dataset(BaseDataset):
             test_dataset=test_dataset,
             physics=physics,
             device=device,
-            save_dir=config.get_data_path(key="Set3c_CBSD68"),
+            save_dir=config.get_data_path(key="CBSD68_Set3c"),
             num_workers=num_workers,
         )
 
