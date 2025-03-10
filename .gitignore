@@ -9,6 +9,7 @@ joblib/
 
 # IDE specific folders
 .vscode
+.idea
 
 # Config files
 benchopt.ini
