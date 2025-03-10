@@ -1,5 +1,5 @@
 
-My Benchopt Benchmark
+Inverse Problems Benchmark
 =====================
 |Build Status| |Python 3.6+|
 
