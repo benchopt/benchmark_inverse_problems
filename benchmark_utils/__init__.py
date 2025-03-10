@@ -7,12 +7,5 @@
 from benchopt.utils import safe_import_context
 
 with safe_import_context() as import_ctx:
-    import numpy as np
-
-
-def gradient_ols(X, y, beta):
-    return X.T @ (X @ beta - y)
-
-
-def value_ols(X, y, beta):
-    return 0.5 * np.mean((y - X @ beta) ** 2)
+    from .hugging_face_torch_dataset import HuggingFaceTorchDataset
+    from .constants import constants
