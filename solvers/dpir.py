@@ -4,8 +4,8 @@ from benchopt import BaseSolver, safe_import_context
 # - skipping import to speed up autocompletion in CLI.
 # - getting requirements info when all dependencies are not installed.
 with safe_import_context() as import_ctx:
+    import torch
     import deepinv as dinv
-    from benchmark_utils import constants
 
 
 # The benchmark solvers must be named `Solver` and
@@ -26,7 +26,7 @@ class Solver(BaseSolver):
     # section in objective.py
     requirements = []
 
-    def set_objective(self, train_dataloader):
+    def set_objective(self, train_dataloader, physics):
         # Define the information received by each solver from the objective.
         # The arguments of this function are the results of the
         # `Objective.get_objective`. This defines the benchmark's API for
@@ -39,8 +39,9 @@ class Solver(BaseSolver):
         # It runs the algorithm for a given a number of iterations `n_iter`.
         # You can also use a `tolerance` or a `callback`, as described in
         # https://benchopt.github.io/performance_curves.html
+        device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-        self.model = dinv.optim.DPIR(sigma=constants()["noise_level_img"], device=constants()["device"])
+        self.model = dinv.optim.DPIR(sigma=0.03, device=device)
 
         self.model.eval()
 

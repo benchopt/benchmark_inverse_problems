@@ -7,8 +7,6 @@ from benchopt import BaseObjective, safe_import_context, config
 with safe_import_context() as import_ctx:
     import numpy as np
     import deepinv as dinv
-    from deepinv.training import test
-    from benchmark_utils import constants
 
 
 # The benchmark objective must be named `Objective` and
@@ -25,9 +23,7 @@ class Objective(BaseObjective):
     # the cross product for each key in the dictionary.
     # All parameters 'p' defined here are available as 'self.p'.
     # This means the OLS objective will have a parameter `self.whiten_y`.
-    parameters = {
-        'task': ['denoising']
-    }
+    parameters = {}
 
     # List of packages needed to run the benchmark.
     # They are installed with conda; to use pip, use 'pip:packagename'. To
@@ -63,7 +59,7 @@ class Objective(BaseObjective):
         else:
             x_hat = model(y, 0.03 * 2)
 
-        #dinv.utils.plot([x[0], y[0], x_hat[0]], ["Ground Truth", "Measurement", "Reconstruction"], rescale_mode="clip")
+        dinv.utils.plot([x[0], y[0], x_hat[0]], ["Ground Truth", "Measurement", "Reconstruction"], rescale_mode="clip")
 
         m = dinv.loss.metric.PSNR()
         psnr = m(x_hat, x)
@@ -75,7 +71,7 @@ class Objective(BaseObjective):
         # metrics needs to be `value` for convergence detection purposes.
         return dict(
             value=torch.mean(psnr).item(),
-            ssim=torch.mean(ssim).item()
+            ssim=torch.mean(ssim).item(),
         )
 
     def get_one_result(self):
@@ -89,4 +85,4 @@ class Objective(BaseObjective):
         # for `Solver.set_objective`. This defines the
         # benchmark's API for passing the objective to the solver.
         # It is customizable for each benchmark.
-        return dict(train_dataloader=self.train_dataloader)
+        return dict(train_dataloader=self.train_dataloader, physics=self.physics)
