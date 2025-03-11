@@ -1,15 +1,11 @@
-from benchopt import BaseSolver, safe_import_context
+from benchopt import BaseSolver, safe_import_context, config
 
 # Protect the import with `safe_import_context()`. This allows:
 # - skipping import to speed up autocompletion in CLI.
 # - getting requirements info when all dependencies are not installed.
 with safe_import_context() as import_ctx:
-    from deepinv.optim.dpir import get_DPIR_params
-    from deepinv.optim.data_fidelity import L2
-    from deepinv.optim.prior import PnP
-    from deepinv.models import WaveletDenoiser
-    from benchmark_utils import constants
-    from deepinv.optim.optimizers import optim_builder
+    import torch
+    import deepinv as dinv
 
 
 # The benchmark solvers must be named `Solver` and
@@ -17,7 +13,7 @@ with safe_import_context() as import_ctx:
 class Solver(BaseSolver):
 
     # Name to select the solver in the CLI and to display the results.
-    name = 'Wavelet'
+    name = 'UNet'
 
     # List of parameters for the solver. The benchmark will consider
     # the cross product for each key in the dictionary.
@@ -28,7 +24,7 @@ class Solver(BaseSolver):
 
     # List of packages needed to run the solver. See the corresponding
     # section in objective.py
-    requirements = ["ptwt"]
+    requirements = []
 
     def set_objective(self, train_dataloader, physics):
         # Define the information received by each solver from the objective.
@@ -37,6 +33,7 @@ class Solver(BaseSolver):
         # passing the objective to the solver.
         # It is customizable for each benchmark.
         self.train_dataloader = train_dataloader
+        self.physics = physics
 
     def run(self, n_iter):
         # This is the function that is called to evaluate the solver.
@@ -44,25 +41,42 @@ class Solver(BaseSolver):
         # You can also use a `tolerance` or a `callback`, as described in
         # https://benchopt.github.io/performance_curves.html
 
-        self.model = WaveletDenoiser(device=constants()["device"])
+        device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-        #sigma_denoiser, stepsize, max_iter = get_DPIR_params(constants()["noise_level_img"])
-        #params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
-        #early_stop = False
+        model = dinv.models.UNet(
+            in_channels=3, out_channels=3, scales=3, batch_norm=False
+        ).to(device)
 
-        #data_fidelity = L2()
+        verbose = True  # print training information
+        wandb_vis = False  # plot curves and images in Weight&Bias
 
-        #prior = PnP(denoiser=WaveletDenoiser(device=constants()["device"]))
+        epochs = 4  # choose training epochs
+        learning_rate = 5e-4
 
-        #self.model = optim_builder(
-        #    iteration="HQS",
-        #    prior=prior,
-        #    data_fidelity=data_fidelity,
-        #    early_stop=early_stop,
-        #    max_iter=max_iter,
-        #    verbose=True,
-        #    params_algo=params_algo,
-        #)
+        # choose training losses
+        losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
+
+        # choose optimizer and scheduler
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
+        trainer = dinv.Trainer(
+            model,
+            device=device,
+            verbose=verbose,
+            save_path=config.get_data_path(""),
+            wandb_vis=wandb_vis,
+            physics=self.physics,
+            epochs=epochs,
+            scheduler=scheduler,
+            losses=losses,
+            optimizer=optimizer,
+            show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
+            train_dataloader=self.train_dataloader,
+        )
+
+        self.model = trainer.train()
+
+        self.model.eval()
 
     def get_result(self):
         # Return the result from one optimization run.
