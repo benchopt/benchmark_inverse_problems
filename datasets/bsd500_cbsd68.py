@@ -50,11 +50,13 @@ class Dataset(BaseDataset):
                 device=device,
                 noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
             )
+            #physics = dinv.physics.Inpainting(mask=0.5, tensor_size=(3, 256, 256), device=device)
         else:
             raise Exception("Unknown task")
 
         transform = transforms.Compose([
             transforms.Resize((img_size, img_size)),  # /!\ WARNING : Est-ce qu'il faut redimensionner les images ?
+            #transforms.CenterCrop((32, 32)),
             transforms.ToTensor()
         ])
 
@@ -90,4 +92,4 @@ class Dataset(BaseDataset):
             test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
         )
 
-        return dict(train_dataloader=train_dataloader, test_dataloader=test_dataloader, physics=physics)
+        return dict(train_dataloader=train_dataloader, test_dataloader=test_dataloader, physics=physics, dataset_name="BSD68", task_name=self.task)

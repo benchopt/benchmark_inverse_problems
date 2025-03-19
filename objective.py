@@ -1,10 +1,10 @@
-import torch
 from benchopt import BaseObjective, safe_import_context, config
 
 # Protect the import with `safe_import_context()`. This allows:
 # - skipping import to speed up autocompletion in CLI.
 # - getting requirements info when all dependencies are not installed.
 with safe_import_context() as import_ctx:
+    import torch
     import numpy as np
     import deepinv as dinv
 
@@ -38,15 +38,17 @@ class Objective(BaseObjective):
     # Bump it up if the benchmark depends on a new feature of benchopt.
     min_benchopt_version = "1.5"
 
-    def set_data(self, train_dataloader, test_dataloader, physics):
+    def set_data(self, train_dataloader, test_dataloader, physics, dataset_name, task_name):
         # The keyword arguments of this function are the keys of the dictionary
         # returned by `Dataset.get_data`. This defines the benchmark's
         # API to pass data. This is customizable for each benchmark.
         self.train_dataloader = train_dataloader
         self.test_dataloader = test_dataloader
         self.physics = physics
+        self.dataset_name = dataset_name
+        self.task_name = task_name
 
-    def evaluate_result(self, model):
+    def evaluate_result(self, model, model_name):
         # The keyword arguments of this function are the keys of the
         # dictionary returned by `Solver.get_result`. This defines the
         # benchmark's API to pass solvers' result. This is customizable for
@@ -54,24 +56,40 @@ class Objective(BaseObjective):
 
         x, y = next(iter(self.test_dataloader))
 
-        if isinstance(model, dinv.optim.DPIR):  # /!\ To remove
-            x_hat = model(y, self.physics)
+        if isinstance(model, dinv.models.DeepImagePrior):
+            y = y[:1, :, :, :]  # We keep the first image of the batch to make a batch of size 1
+
+        x_hat = model(y, self.physics)
+
+        dinv.utils.plot([x[0], y[0], x_hat[0]], ["Ground Truth", "Measurement", "Reconstruction"], suptitle=f"{self.task_name} with {model_name} on {self.dataset_name}", rescale_mode="clip", save_dir=f"/Users/melvinenargeot/Desktop/figs/{self.task_name}_with_{model_name}_on_{self.dataset_name}.png")
+
+        if isinstance(model, dinv.models.DeepImagePrior):
+            results = dict(PSNR=None, SSIM=None)
+
+            x_hat = torch.empty((0, 3, 256, 256))
+
+            for x, y in self.test_dataloader:
+                for y_alone in y:
+                    x_hat_alone = model(y_alone.unsqueeze(0), self.physics)
+                    x_hat = torch.cat([x_hat, x_hat_alone])
+
+            # x_hat = torch.tensor([model(y_alone.unsqueeze(0), self.physics) for x, y in self.test_dataloader for y_alone in y])
+
+                results["PSNR"] = dinv.metric.PSNR()(x_hat, x).mean()
+                results["SSIM"] = dinv.metric.SSIM()(x_hat, x).mean()
         else:
-            x_hat = model(y, 0.03 * 2)
-
-        dinv.utils.plot([x[0], y[0], x_hat[0]], ["Ground Truth", "Measurement", "Reconstruction"], rescale_mode="clip")
-
-        m = dinv.loss.metric.PSNR()
-        psnr = m(x_hat, x)
-
-        m = dinv.loss.metric.SSIM()
-        ssim = m(x_hat, x)
+            results = dinv.test(
+                model,
+                self.test_dataloader,
+                self.physics,
+                metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()]
+            )
 
         # This method can return many metrics in a dictionary. One of these
         # metrics needs to be `value` for convergence detection purposes.
         return dict(
-            value=torch.mean(psnr).item(),
-            ssim=torch.mean(ssim).item(),
+            value=results["PSNR"],
+            ssim=results["SSIM"],
         )
 
     def get_one_result(self):

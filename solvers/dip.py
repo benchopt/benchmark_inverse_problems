@@ -43,12 +43,12 @@ class Solver(BaseSolver):
 
         device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-        iterations = 100
+        iterations = 300
         lr = 1e-2  # learning rate for the optimizer.
         channels = 64  # number of channels per layer in the decoder.
-        in_size = (2, 2)  # size of the input to the decoder.
+        in_size = [2, 2]  # size of the input to the decoder.
         backbone = dinv.models.ConvDecoder(
-            img_shape=x.shape[1:], in_size=in_size, channels=channels
+            img_shape=torch.Size([3, 256, 256]), in_size=in_size, channels=channels
         ).to(device)
 
         self.model = dinv.models.DeepImagePrior(
@@ -59,12 +59,10 @@ class Solver(BaseSolver):
             input_size=[channels] + in_size,
         ).to(device)
 
-        self.model.eval()
-
     def get_result(self):
         # Return the result from one optimization run.
         # The outputs of this function is a dictionary which defines the
         # keyword arguments for `Objective.evaluate_result`
         # This defines the benchmark's API for solvers' results.
         # it is customizable for each benchmark.
-        return dict(model=self.model)
+        return dict(model=self.model, model_name="DIP")

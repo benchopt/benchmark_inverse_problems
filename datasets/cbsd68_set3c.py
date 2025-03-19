@@ -91,4 +91,4 @@ class Dataset(BaseDataset):
             test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
         )
 
-        return dict(train_dataloader=train_dataloader, test_dataloader=test_dataloader, physics=physics)
+        return dict(train_dataloader=train_dataloader, test_dataloader=test_dataloader, physics=physics, dataset_name="Set3c", task_name=self.task)
