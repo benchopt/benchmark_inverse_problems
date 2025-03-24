@@ -6,6 +6,7 @@ from benchopt import BaseSolver, safe_import_context, config
 with safe_import_context() as import_ctx:
     import torch
     import deepinv as dinv
+    from sklearn.model_selection import GridSearchCV
 
 
 # The benchmark solvers must be named `Solver` and
@@ -24,7 +25,7 @@ class Solver(BaseSolver):
 
     # List of packages needed to run the solver. See the corresponding
     # section in objective.py
-    requirements = []
+    requirements = ["scikit-learn"]
 
     def set_objective(self, train_dataloader, physics):
         # Define the information received by each solver from the objective.
@@ -34,6 +35,7 @@ class Solver(BaseSolver):
         # It is customizable for each benchmark.
         self.train_dataloader = train_dataloader
         self.physics = physics
+        self.device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
     def run(self, n_iter):
         # This is the function that is called to evaluate the solver.
@@ -41,14 +43,25 @@ class Solver(BaseSolver):
         # You can also use a `tolerance` or a `callback`, as described in
         # https://benchopt.github.io/performance_curves.html
 
-        device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+        #param_grid = {
+        #    'lr': [1e-5, 1e-2],
+        #    'epochs': [4, 10]
+        #}
+
+        #param_combinations = list(product(*param_grid.values()))
+
+        #best_loss = float('inf')
+        #best_params = None
 
         model = dinv.models.UNet(
             in_channels=3, out_channels=3, scales=3, batch_norm=False
-        ).to(device)
+        ).to(self.device)
 
         verbose = True  # print training information
         wandb_vis = False  # plot curves and images in Weight&Bias
+
+        #for params in param_combinations:
+        #    lr, epochs = params
 
         epochs = 4  # choose training epochs
         learning_rate = 5e-4
@@ -61,7 +74,7 @@ class Solver(BaseSolver):
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
         trainer = dinv.Trainer(
             model,
-            device=device,
+            device=self.device,
             verbose=verbose,
             save_path=config.get_data_path(""),
             wandb_vis=wandb_vis,
@@ -84,4 +97,4 @@ class Solver(BaseSolver):
         # keyword arguments for `Objective.evaluate_result`
         # This defines the benchmark's API for solvers' results.
         # it is customizable for each benchmark.
-        return dict(model=self.model, model_name="U-Net")
+        return dict(model=self.model, model_name="U-Net", device=self.device)

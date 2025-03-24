@@ -33,15 +33,14 @@ class Solver(BaseSolver):
         # passing the objective to the solver.
         # It is customizable for each benchmark.
         self.train_dataloader = train_dataloader
+        self.device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
     def run(self, n_iter):
         # This is the function that is called to evaluate the solver.
         # It runs the algorithm for a given a number of iterations `n_iter`.
         # You can also use a `tolerance` or a `callback`, as described in
         # https://benchopt.github.io/performance_curves.html
-        device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
-        self.model = dinv.optim.DPIR(sigma=0.03, device=device)
+        self.model = dinv.optim.DPIR(sigma=0.03, device=self.device)
 
         self.model.eval()
 
@@ -51,4 +50,4 @@ class Solver(BaseSolver):
         # keyword arguments for `Objective.evaluate_result`
         # This defines the benchmark's API for solvers' results.
         # it is customizable for each benchmark.
-        return dict(model=self.model, model_name="DPIR")
+        return dict(model=self.model, model_name="DPIR", device=self.device)

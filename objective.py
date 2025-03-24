@@ -48,41 +48,47 @@ class Objective(BaseObjective):
         self.dataset_name = dataset_name
         self.task_name = task_name
 
-    def evaluate_result(self, model, model_name):
+    def evaluate_result(self, model, model_name, device):
         # The keyword arguments of this function are the keys of the
         # dictionary returned by `Solver.get_result`. This defines the
         # benchmark's API to pass solvers' result. This is customizable for
         # each benchmark.
 
-        x, y = next(iter(self.test_dataloader))
+        #x, y = next(iter(self.test_dataloader))
+        #x, y = x.to(device), y.to(device)
+
+        #if isinstance(model, dinv.models.DeepImagePrior):
+        #    y = y[:1, :, :, :]  # We keep the first image of the batch to make a batch of size 1
+
+        #x_hat = model(y, self.physics)
+
+        #dinv.utils.plot([x[0], y[0], x_hat[0]], ["Ground Truth", "Measurement", "Reconstruction"], suptitle=f"{self.task_name} with {model_name} on {self.dataset_name}", rescale_mode="clip", save_dir=f"./figs/{self.task_name}_with_{model_name}_on_{self.dataset_name}")
 
         if isinstance(model, dinv.models.DeepImagePrior):
-            y = y[:1, :, :, :]  # We keep the first image of the batch to make a batch of size 1
-
-        x_hat = model(y, self.physics)
-
-        dinv.utils.plot([x[0], y[0], x_hat[0]], ["Ground Truth", "Measurement", "Reconstruction"], suptitle=f"{self.task_name} with {model_name} on {self.dataset_name}", rescale_mode="clip", save_dir=f"/Users/melvinenargeot/Desktop/figs/{self.task_name}_with_{model_name}_on_{self.dataset_name}.png")
-
-        if isinstance(model, dinv.models.DeepImagePrior):
-            results = dict(PSNR=None, SSIM=None)
-
-            x_hat = torch.empty((0, 3, 256, 256))
+            results = dict(PSNR=torch.empty(0).to(device), SSIM=torch.empty(0).to(device))
 
             for x, y in self.test_dataloader:
+                x, y = x.to(device), y.to(device)
+                x_hat = torch.empty((0, 3, 256, 256)).to(device)
+
                 for y_alone in y:
                     x_hat_alone = model(y_alone.unsqueeze(0), self.physics)
                     x_hat = torch.cat([x_hat, x_hat_alone])
 
             # x_hat = torch.tensor([model(y_alone.unsqueeze(0), self.physics) for x, y in self.test_dataloader for y_alone in y])
 
-                results["PSNR"] = dinv.metric.PSNR()(x_hat, x).mean()
-                results["SSIM"] = dinv.metric.SSIM()(x_hat, x).mean()
+                results["PSNR"] = torch.cat([results["PSNR"], dinv.metric.PSNR()(x_hat, x)])
+                results["SSIM"] = torch.cat([results["SSIM"], dinv.metric.SSIM()(x_hat, x)])
+
+            results["PSNR"] = results["PSNR"].mean().item()
+            results["SSIM"] = results["SSIM"].mean().item()
         else:
             results = dinv.test(
                 model,
                 self.test_dataloader,
                 self.physics,
-                metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()]
+                metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
+                device=device
             )
 
         # This method can return many metrics in a dictionary. One of these
