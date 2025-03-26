@@ -32,7 +32,7 @@ class Dataset(BaseDataset):
     requirements = ["torch", "deepinv", "datasets"]
 
     def get_data(self):
-        img_size = 256
+        img_size = 256  # 64 x 64
         device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
         num_workers = 4 if torch.cuda.is_available() else 0
 

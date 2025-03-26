@@ -6,6 +6,7 @@ from benchopt import BaseSolver, safe_import_context, config
 with safe_import_context() as import_ctx:
     import torch
     import deepinv as dinv
+    import optuna
 
 
 # The benchmark solvers must be named `Solver` and
@@ -24,7 +25,7 @@ class Solver(BaseSolver):
 
     # List of packages needed to run the solver. See the corresponding
     # section in objective.py
-    requirements = []
+    requirements = ["torch", "optuna", "deepinv"]
 
     def set_objective(self, train_dataloader, physics):
         # Define the information received by each solver from the objective.
@@ -42,21 +43,39 @@ class Solver(BaseSolver):
         # You can also use a `tolerance` or a `callback`, as described in
         # https://benchopt.github.io/performance_curves.html
 
-        iterations = 300
-        lr = 1e-3  # learning rate for the optimizer.
-        channels = 64  # number of channels per layer in the decoder.
-        in_size = [2, 2]  # size of the input to the decoder.
-        backbone = dinv.models.ConvDecoder(
-            img_shape=torch.Size([3, 256, 256]), in_size=in_size, channels=channels
-        ).to(self.device)
+        def objective(trial):
+            lr = trial.suggest_float('lr', 1e-5, 1e-2, log=True)
+            iterations = trial.suggest_int('iterations', 50, 500, log=True)
+            channels = trial.suggest_int('channels', 8, 128, log=True)
 
-        self.model = dinv.models.DeepImagePrior(
-            backbone,
-            learning_rate=lr,
-            iterations=iterations,
-            verbose=True,
-            input_size=[channels] + in_size,
-        ).to(self.device)
+            model = self.get_model(lr, iterations, channels)
+
+            
+            psnr = torch.empty(0).to(self.device) 
+
+            for x, y in self.test_dataloader:
+                x, y = x.to(self.device), y.to(self.device)
+                x_hat = torch.empty((0, 3, 256, 256)).to(self.device)
+
+                for y_alone in y:
+                    x_hat_alone = model(y_alone.unsqueeze(0), self.physics)
+                    x_hat = torch.cat([x_hat, x_hat_alone])
+
+                psnr = torch.cat([psnr, dinv.metric.PSNR()(x_hat, x)])
+
+            psnr = psnr.mean().item()
+
+            return -psnr 
+            
+        study = optuna.create_study()
+        study.optimize(objective, n_trials=100)
+        
+        best_trial = study.best_trial
+        best_params = best_trial.params
+
+        model = self.get_model(best_params['lr'], best_params['iterations'], best_params['channels'])
+
+        return model
 
     def get_result(self):
         # Return the result from one optimization run.
@@ -65,3 +84,19 @@ class Solver(BaseSolver):
         # This defines the benchmark's API for solvers' results.
         # it is customizable for each benchmark.
         return dict(model=self.model, model_name="DIP", device=self.device)
+
+    def get_model(self, lr, iterations, channels):
+        in_size = [2, 2]  # size of the input to the decoder.
+        backbone = dinv.models.ConvDecoder(
+            img_shape=torch.Size([3, 256, 256]), in_size=in_size, channels=channels
+        ).to(self.device)
+
+        model = dinv.models.DeepImagePrior(
+            backbone,
+            learning_rate=lr,
+            iterations=iterations,
+            verbose=True,
+            input_size=[channels] + in_size,
+        ).to(self.device)
+
+        return model

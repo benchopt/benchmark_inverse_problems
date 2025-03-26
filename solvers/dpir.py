@@ -24,7 +24,7 @@ class Solver(BaseSolver):
 
     # List of packages needed to run the solver. See the corresponding
     # section in objective.py
-    requirements = []
+    requirements = ["torch", "deepinv"]
 
     def set_objective(self, train_dataloader, physics):
         # Define the information received by each solver from the objective.

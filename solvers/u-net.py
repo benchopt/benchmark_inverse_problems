@@ -5,8 +5,8 @@ from benchopt import BaseSolver, safe_import_context, config
 # - getting requirements info when all dependencies are not installed.
 with safe_import_context() as import_ctx:
     import torch
+    import optuna
     import deepinv as dinv
-    from sklearn.model_selection import GridSearchCV
 
 
 # The benchmark solvers must be named `Solver` and
@@ -25,7 +25,7 @@ class Solver(BaseSolver):
 
     # List of packages needed to run the solver. See the corresponding
     # section in objective.py
-    requirements = ["scikit-learn"]
+    requirements = ["optuna"]
 
     def set_objective(self, train_dataloader, physics):
         # Define the information received by each solver from the objective.
@@ -43,16 +43,37 @@ class Solver(BaseSolver):
         # You can also use a `tolerance` or a `callback`, as described in
         # https://benchopt.github.io/performance_curves.html
 
-        #param_grid = {
-        #    'lr': [1e-5, 1e-2],
-        #    'epochs': [4, 10]
-        #}
+        def objective(trial):
+            lr = trial.suggest_float('lr', 1e-5, 1e-2, log=True)
+            epochs = trial.suggest_int('epochs', 4, 20)
+            batch_size = trial.suggest_int('batch_size', 32, 128, log=True)
 
-        #param_combinations = list(product(*param_grid.values()))
+            trainer = self.get_trainer(lr, epochs, batch_size)
 
-        #best_loss = float('inf')
-        #best_params = None
+            trainer.train()
 
+            return -trainer.logs_metrics_train[0].avg
+
+        study = optuna.create_study()
+        study.optimize(objective, n_trials=100)
+
+        best_trial = study.best_trial
+        best_params = best_trial.params
+
+        trainer = self.get_trainer(best_params['lr'], best_params['epochs'], best_params['batch_size'])
+
+        self.model = trainer.train()
+        self.model.eval()
+
+    def get_result(self):
+        # Return the result from one optimization run.
+        # The outputs of this function is a dictionary which defines the
+        # keyword arguments for `Objective.evaluate_result`
+        # This defines the benchmark's API for solvers' results.
+        # it is customizable for each benchmark.
+        return dict(model=self.model, model_name="U-Net", device=self.device)
+
+    def get_trainer(self, lr, epochs, batch_size):
         model = dinv.models.UNet(
             in_channels=3, out_channels=3, scales=3, batch_norm=False
         ).to(self.device)
@@ -60,19 +81,13 @@ class Solver(BaseSolver):
         verbose = True  # print training information
         wandb_vis = False  # plot curves and images in Weight&Bias
 
-        #for params in param_combinations:
-        #    lr, epochs = params
-
-        epochs = 4  # choose training epochs
-        learning_rate = 5e-4
-
         # choose training losses
         losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
 
         # choose optimizer and scheduler
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-8)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
-        trainer = dinv.Trainer(
+        return dinv.Trainer(
             model,
             device=self.device,
             verbose=verbose,
@@ -86,15 +101,3 @@ class Solver(BaseSolver):
             show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
             train_dataloader=self.train_dataloader,
         )
-
-        self.model = trainer.train()
-
-        self.model.eval()
-
-    def get_result(self):
-        # Return the result from one optimization run.
-        # The outputs of this function is a dictionary which defines the
-        # keyword arguments for `Objective.evaluate_result`
-        # This defines the benchmark's API for solvers' results.
-        # it is customizable for each benchmark.
-        return dict(model=self.model, model_name="U-Net", device=self.device)
