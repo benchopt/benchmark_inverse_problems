@@ -49,11 +49,10 @@ class Solver(BaseSolver):
             channels = trial.suggest_int('channels', 8, 128, log=True)
 
             model = self.get_model(lr, iterations, channels)
-
             
             psnr = torch.empty(0).to(self.device) 
 
-            for x, y in self.test_dataloader:
+            for x, y in self.train_dataloader:
                 x, y = x.to(self.device), y.to(self.device)
                 x_hat = torch.empty((0, 3, 256, 256)).to(self.device)
 
@@ -65,9 +64,9 @@ class Solver(BaseSolver):
 
             psnr = psnr.mean().item()
 
-            return -psnr 
+            return psnr
             
-        study = optuna.create_study()
+        study = optuna.create_study(direction='maximize')
         study.optimize(objective, n_trials=100)
         
         best_trial = study.best_trial
@@ -95,7 +94,7 @@ class Solver(BaseSolver):
             backbone,
             learning_rate=lr,
             iterations=iterations,
-            verbose=True,
+            # verbose=True,
             input_size=[channels] + in_size,
         ).to(self.device)
 

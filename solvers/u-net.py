@@ -46,21 +46,20 @@ class Solver(BaseSolver):
         def objective(trial):
             lr = trial.suggest_float('lr', 1e-5, 1e-2, log=True)
             epochs = trial.suggest_int('epochs', 4, 20)
-            batch_size = trial.suggest_int('batch_size', 32, 128, log=True)
 
-            trainer = self.get_trainer(lr, epochs, batch_size)
+            trainer = self.get_trainer(lr, epochs)
 
             trainer.train()
 
-            return -trainer.logs_metrics_train[0].avg
+            return trainer.logs_metrics_train[0].avg
 
-        study = optuna.create_study()
+        study = optuna.create_study(direction='maximize')
         study.optimize(objective, n_trials=100)
 
         best_trial = study.best_trial
         best_params = best_trial.params
 
-        trainer = self.get_trainer(best_params['lr'], best_params['epochs'], best_params['batch_size'])
+        trainer = self.get_trainer(best_params['lr'], best_params['epochs']) 
 
         self.model = trainer.train()
         self.model.eval()
@@ -73,12 +72,12 @@ class Solver(BaseSolver):
         # it is customizable for each benchmark.
         return dict(model=self.model, model_name="U-Net", device=self.device)
 
-    def get_trainer(self, lr, epochs, batch_size):
+    def get_trainer(self, lr, epochs):
         model = dinv.models.UNet(
             in_channels=3, out_channels=3, scales=3, batch_norm=False
         ).to(self.device)
 
-        verbose = True  # print training information
+        verbose = False  # print training information
         wandb_vis = False  # plot curves and images in Weight&Bias
 
         # choose training losses
@@ -91,7 +90,6 @@ class Solver(BaseSolver):
             model,
             device=self.device,
             verbose=verbose,
-            save_path=config.get_data_path(""),
             wandb_vis=wandb_vis,
             physics=self.physics,
             epochs=epochs,
