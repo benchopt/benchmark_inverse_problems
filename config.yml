@@ -1,5 +1,5 @@
 data_home: /Users/melvinenargeot/Data/benchmark_inverse_problems
 data_paths:
-    CBSD68_Set3c: Set3c_CBSD68
-    BSD500_CBSD68: CBSD68_BSD500
+    generated_datasets: generated_datasets
+    generated_trainings: generated_training
     BSD500: BSD500/BSR/BSDS500/data/images

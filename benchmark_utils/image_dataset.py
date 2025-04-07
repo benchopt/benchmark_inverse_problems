@@ -8,7 +8,8 @@ class ImageDataset(Dataset):
     def __init__(self, folder: str, transform: Callable = None) -> None:
         self.folder = folder
         self.transform = transform
-        self.files = [f for f in os.listdir(folder) if f.endswith(('.png', '.jpg', '.jpeg'))]
+        self.files = [f for f in os.listdir(folder) if f.endswith((
+                      '.png', '.jpg', '.jpeg'))]
 
     def __len__(self):
         return len(self.files)
