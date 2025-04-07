@@ -2,6 +2,7 @@ from benchopt import BaseDataset, safe_import_context, config
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
+    import torch
     from torchvision import transforms
     from datasets import load_dataset
     from benchmark_utils.image_dataset import ImageDataset
@@ -21,6 +22,8 @@ class Dataset(BaseDataset):
     requirements = ["datasets"]
 
     def get_data(self):
+        device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"  # TODO: Remove
+
         if self.task == "denoising":
             noise_level_img = 0.03
             physics = Denoising(GaussianNoise(sigma=noise_level_img))
@@ -33,7 +36,7 @@ class Dataset(BaseDataset):
                 img_size=(n_channels, self.img_size, self.img_size),
                 filter=filter_torch,
                 noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-                device="cuda"
+                device=device
             )
             #physics = dinv.physics.Inpainting(mask=0.5, tensor_size=(3, 256, 256), device=device)
         else:
@@ -56,7 +59,7 @@ class Dataset(BaseDataset):
             physics=physics,
             save_dir=config.get_data_path(key="generated_datasets") / "bsd500_cbsd68",
             dataset_filename=self.task,
-            device="cuda"
+            device=device
         )
 
         train_dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
