@@ -5,6 +5,7 @@ from benchopt import BaseObjective, safe_import_context, config
 # - getting requirements info when all dependencies are not installed.
 with safe_import_context() as import_ctx:
     import torch
+    from torch.utils.data import DataLoader
     import numpy as np
     import deepinv as dinv
 
@@ -32,18 +33,18 @@ class Objective(BaseObjective):
     # solvers or datasets should be declared in Dataset or Solver (see
     # simulated.py and python-gd.py).
     # Example syntax: requirements = ['numpy', 'pip:jax', 'pytorch:pytorch']
-    requirements = []
+    requirements = ["torch", "numpy", "deepinv"]
 
     # Minimal version of benchopt required to run this benchmark.
     # Bump it up if the benchmark depends on a new feature of benchopt.
     min_benchopt_version = "1.5"
 
-    def set_data(self, train_dataloader, test_dataloader, physics, dataset_name, task_name):
+    def set_data(self, train_dataset, test_dataset, physics, dataset_name, task_name):
         # The keyword arguments of this function are the keys of the dictionary
         # returned by `Dataset.get_data`. This defines the benchmark's
         # API to pass data. This is customizable for each benchmark.
-        self.train_dataloader = train_dataloader
-        self.test_dataloader = test_dataloader
+        self.train_dataset = train_dataset
+        self.test_dataset = test_dataset
         self.physics = physics
         self.dataset_name = dataset_name
         self.task_name = task_name
@@ -64,28 +65,31 @@ class Objective(BaseObjective):
 
         #dinv.utils.plot([x[0], y[0], x_hat[0]], ["Ground Truth", "Measurement", "Reconstruction"], suptitle=f"{self.task_name} with {model_name} on {self.dataset_name}", rescale_mode="clip", save_dir=f"./figs/{self.task_name}_with_{model_name}_on_{self.dataset_name}")
 
+        batch_size = 2
+        test_dataloader = DataLoader(
+            self.test_dataset, batch_size=batch_size, shuffle=False
+        )
+
         if isinstance(model, dinv.models.DeepImagePrior):
-            results = dict(PSNR=torch.empty(0).to(device), SSIM=torch.empty(0).to(device))
+            psnr = []
+            ssim = []
 
-            for x, y in self.test_dataloader:
+            for x, y in test_dataloader:
                 x, y = x.to(device), y.to(device)
-                x_hat = torch.empty((0, 3, 256, 256)).to(device)
+                x_hat = torch.cat([
+                    model(y_i[None], self.physics) for y_i in y
+                ])
+                psnr.append(dinv.metric.PSNR()(x_hat, x))
+                ssim.append(dinv.metric.SSIM()(x_hat, x))
 
-                for y_alone in y:
-                    x_hat_alone = model(y_alone.unsqueeze(0), self.physics)
-                    x_hat = torch.cat([x_hat, x_hat_alone])
+            psnr = torch.mean(torch.cat(psnr)).item()
+            ssim = torch.mean(torch.cat(ssim)).item()
 
-            # x_hat = torch.tensor([model(y_alone.unsqueeze(0), self.physics) for x, y in self.test_dataloader for y_alone in y])
-
-                results["PSNR"] = torch.cat([results["PSNR"], dinv.metric.PSNR()(x_hat, x)])
-                results["SSIM"] = torch.cat([results["SSIM"], dinv.metric.SSIM()(x_hat, x)])
-
-            results["PSNR"] = results["PSNR"].mean().item()
-            results["SSIM"] = results["SSIM"].mean().item()
+            results = dict(PSNR=psnr, SSIM=ssim)
         else:
             results = dinv.test(
                 model,
-                self.test_dataloader,
+                test_dataloader,
                 self.physics,
                 metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
                 device=device
@@ -109,4 +113,4 @@ class Objective(BaseObjective):
         # for `Solver.set_objective`. This defines the
         # benchmark's API for passing the objective to the solver.
         # It is customizable for each benchmark.
-        return dict(train_dataloader=self.train_dataloader, physics=self.physics)
+        return dict(train_dataset=self.train_dataset, physics=self.physics)

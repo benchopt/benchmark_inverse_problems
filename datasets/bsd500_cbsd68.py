@@ -1,41 +1,26 @@
 from benchopt import BaseDataset, safe_import_context, config
 
-
-# Protect the import with `safe_import_context()`. This allows:
-# - skipping import to speed up autocompletion in CLI.
-# - getting requirements info when all dependencies are not installed.
 with safe_import_context() as import_ctx:
-    import torch
     import deepinv as dinv
-    from torch.utils.data import DataLoader
     from torchvision import transforms
     from datasets import load_dataset
-    from benchmark_utils import HuggingFaceTorchDataset, ImageDataset
+    from benchmark_utils.image_dataset import ImageDataset
+    from benchmark_utils.hugging_face_torch_dataset import HuggingFaceTorchDataset
     from deepinv.physics import Denoising, GaussianNoise
 
 
-# All datasets must be named `Dataset` and inherit from `BaseDataset`
 class Dataset(BaseDataset):
 
-    # Name to select the dataset in the CLI and to display the results.
     name = "BSD500_CBSD68"
 
-    # List of parameters to generate the datasets. The benchmark will consider
-    # the cross product for each key in the dictionary.
-    # Any parameters 'param' defined here is available as `self.param`.
     parameters = {
         'task': ['denoising', 'debluring'],
+        'img_size': [256],
     }
 
-    # List of packages needed to run the dataset. See the corresponding
-    # section in objective.py
-    requirements = ["torch", "deepinv", "datasets"]
+    requirements = ["datasets"]
 
     def get_data(self):
-        img_size = 256  # 64 x 64
-        device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-        num_workers = 4 if torch.cuda.is_available() else 0
-
         if self.task == "denoising":
             noise_level_img = 0.03
             physics = Denoising(GaussianNoise(sigma=noise_level_img))
@@ -45,17 +30,17 @@ class Dataset(BaseDataset):
             n_channels = 3  # 3 for color images, 1 for gray-scale images
 
             physics = dinv.physics.BlurFFT(
-                img_size=(n_channels, img_size, img_size),
+                img_size=(n_channels, self.img_size, self.img_size),
                 filter=filter_torch,
-                device=device,
                 noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+                device="cuda"
             )
             #physics = dinv.physics.Inpainting(mask=0.5, tensor_size=(3, 256, 256), device=device)
         else:
             raise Exception("Unknown task")
 
         transform = transforms.Compose([
-            transforms.Resize((img_size, img_size)),  # /!\ WARNING : Est-ce qu'il faut redimensionner les images ?
+            transforms.Resize((self.img_size, self.img_size)),
             #transforms.CenterCrop((32, 32)),
             transforms.ToTensor()
         ])
@@ -69,10 +54,9 @@ class Dataset(BaseDataset):
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
-            device=device,
             save_dir=config.get_data_path(key="generated_datasets") / "bsd500_cbsd68",
             dataset_filename=self.task,
-            num_workers=num_workers,
+            device="cuda"
         )
 
         train_dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
@@ -84,12 +68,4 @@ class Dataset(BaseDataset):
         x, y = test_dataset[0]
         dinv.utils.plot([x.unsqueeze(0), y.unsqueeze(0)])
 
-        batch_size = 2
-        train_dataloader = DataLoader(
-            train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
-        )
-        test_dataloader = DataLoader(
-            test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
-        )
-
-        return dict(train_dataloader=train_dataloader, test_dataloader=test_dataloader, physics=physics, dataset_name="BSD68", task_name=self.task)
+        return dict(train_dataset=train_dataset, test_dataset=test_dataset, physics=physics, dataset_name="BSD68", task_name=self.task)
