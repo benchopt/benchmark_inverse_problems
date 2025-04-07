@@ -6,7 +6,6 @@ from benchopt import BaseObjective, safe_import_context
 with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
-    import numpy as np
     import deepinv as dinv
 
 
