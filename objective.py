@@ -1,4 +1,4 @@
-from benchopt import BaseObjective, safe_import_context, config
+from benchopt import BaseObjective, safe_import_context
 
 # Protect the import with `safe_import_context()`. This allows:
 # - skipping import to speed up autocompletion in CLI.
@@ -39,7 +39,12 @@ class Objective(BaseObjective):
     # Bump it up if the benchmark depends on a new feature of benchopt.
     min_benchopt_version = "1.5"
 
-    def set_data(self, train_dataset, test_dataset, physics, dataset_name, task_name):
+    def set_data(self,
+                 train_dataset,
+                 test_dataset,
+                 physics,
+                 dataset_name,
+                 task_name):
         # The keyword arguments of this function are the keys of the dictionary
         # returned by `Dataset.get_data`. This defines the benchmark's
         # API to pass data. This is customizable for each benchmark.
@@ -54,16 +59,6 @@ class Objective(BaseObjective):
         # dictionary returned by `Solver.get_result`. This defines the
         # benchmark's API to pass solvers' result. This is customizable for
         # each benchmark.
-
-        #x, y = next(iter(self.test_dataloader))
-        #x, y = x.to(device), y.to(device)
-
-        #if isinstance(model, dinv.models.DeepImagePrior):
-        #    y = y[:1, :, :, :]  # We keep the first image of the batch to make a batch of size 1
-
-        #x_hat = model(y, self.physics)
-
-        #dinv.utils.plot([x[0], y[0], x_hat[0]], ["Ground Truth", "Measurement", "Reconstruction"], suptitle=f"{self.task_name} with {model_name} on {self.dataset_name}", rescale_mode="clip", save_dir=f"./figs/{self.task_name}_with_{model_name}_on_{self.dataset_name}")
 
         batch_size = 2
         test_dataloader = DataLoader(

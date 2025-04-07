@@ -1,5 +1,5 @@
 import numpy as np
-from benchopt import BaseSolver, safe_import_context, config
+from benchopt import BaseSolver, safe_import_context
 
 with safe_import_context() as import_ctx:
     import torch
@@ -24,7 +24,9 @@ class Solver(BaseSolver):
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
-        self.device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+        self.device = (
+            dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+        )
         self.physics = physics.to(self.device)
 
     def run(self, n_iter):
@@ -41,8 +43,12 @@ class Solver(BaseSolver):
         losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
 
         # choose optimizer and scheduler
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=1e-8)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
+        optimizer = torch.optim.Adam(
+            model.parameters(), lr=self.lr, weight_decay=1e-8
+        )
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=int(epochs * 0.8)
+        )
         trainer = dinv.Trainer(
             model,
             device=self.device,
@@ -53,7 +59,7 @@ class Solver(BaseSolver):
             scheduler=scheduler,
             losses=losses,
             optimizer=optimizer,
-            show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
+            show_progress_bar=True,
             train_dataloader=self.train_dataloader,
         )
 

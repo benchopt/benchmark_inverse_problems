@@ -4,12 +4,8 @@ from benchopt import BaseSolver, safe_import_context
 # - skipping import to speed up autocompletion in CLI.
 # - getting requirements info when all dependencies are not installed.
 with safe_import_context() as import_ctx:
-    from deepinv.optim.dpir import get_DPIR_params
-    from deepinv.optim.data_fidelity import L2
-    from deepinv.optim.prior import PnP
     from deepinv.models import WaveletDenoiser
     from benchmark_utils import constants
-    from deepinv.optim.optimizers import optim_builder
 
 
 # The benchmark solvers must be named `Solver` and
@@ -45,24 +41,6 @@ class Solver(BaseSolver):
         # https://benchopt.github.io/performance_curves.html
 
         self.model = WaveletDenoiser(device=constants()["device"])
-
-        #sigma_denoiser, stepsize, max_iter = get_DPIR_params(constants()["noise_level_img"])
-        #params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
-        #early_stop = False
-
-        #data_fidelity = L2()
-
-        #prior = PnP(denoiser=WaveletDenoiser(device=constants()["device"]))
-
-        #self.model = optim_builder(
-        #    iteration="HQS",
-        #    prior=prior,
-        #    data_fidelity=data_fidelity,
-        #    early_stop=early_stop,
-        #    max_iter=max_iter,
-        #    verbose=True,
-        #    params_algo=params_algo,
-        #)
 
     def get_result(self):
         # Return the result from one optimization run.

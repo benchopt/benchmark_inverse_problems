@@ -1,11 +1,10 @@
-from benchopt import BaseSolver, safe_import_context, config
+from benchopt import BaseSolver, safe_import_context
 
 with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import optuna
-    import numpy as np
 
 
 class Solver(BaseSolver):
@@ -23,7 +22,9 @@ class Solver(BaseSolver):
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
-        self.device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+        self.device = (
+            dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+        )
         self.physics = physics.to(self.device)
 
     def run(self, n_iter):
@@ -35,7 +36,7 @@ class Solver(BaseSolver):
             iterations = 5
 
             model = self.get_model(lr, iterations)
-            
+
             psnr = []
 
             for x, y in self.train_dataloader:
@@ -48,14 +49,15 @@ class Solver(BaseSolver):
             psnr = torch.mean(torch.cat(psnr)).item()
 
             return psnr
-            
+
         study = optuna.create_study(direction='maximize')
         study.optimize(objective, n_trials=1)
-        
+
         best_trial = study.best_trial
         best_params = best_trial.params
 
-        self.model = self.get_model(best_params['lr'], 5)  # TODO : replace 5 by best_params['iterations'])
+        # TODO : replace 5 by best_params['iterations'])
+        self.model = self.get_model(best_params['lr'], 5)
 
     def get_result(self):
         return dict(model=self.model, model_name="DIP", device=self.device)
@@ -64,7 +66,9 @@ class Solver(BaseSolver):
         in_size = [4, 4]  # size of the input to the decoder.
         channels = 64
         backbone = dinv.models.ConvDecoder(
-            img_shape=self.train_dataset[0][0].shape, in_size=in_size, channels=channels
+            img_shape=self.train_dataset[0][0].shape,
+            in_size=in_size,
+            channels=channels
         ).to(self.device)
 
         model = dinv.models.DeepImagePrior(

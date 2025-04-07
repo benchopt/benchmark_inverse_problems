@@ -21,7 +21,9 @@ class Solver(BaseSolver):
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
-        self.device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+        self.device = (
+            dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+        )
         self.physics = physics
 
     def run(self, n_iter):
