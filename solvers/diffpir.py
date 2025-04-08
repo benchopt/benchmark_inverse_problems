@@ -4,7 +4,6 @@ with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
-    import numpy as np
 
 
 class Solver(BaseSolver):
