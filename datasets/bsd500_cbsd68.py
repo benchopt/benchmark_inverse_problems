@@ -10,14 +10,14 @@ with safe_import_context() as import_ctx:
         HuggingFaceTorchDataset
     )
     from deepinv.physics import Denoising, GaussianNoise
-
+    from deepinv.physics.generator import MotionBlurGenerator
 
 class Dataset(BaseDataset):
 
     name = "BSD500_CBSD68"
 
     parameters = {
-        'task': ['denoising', 'debluring'],
+        'task': ['denoising', 'gaussian-debluring', 'motion-debluring'],
         'img_size': [256],
     }
 
@@ -31,7 +31,7 @@ class Dataset(BaseDataset):
         if self.task == "denoising":
             noise_level_img = 0.03
             physics = Denoising(GaussianNoise(sigma=noise_level_img))
-        elif self.task == "debluring":
+        elif self.task == "gaussian-debluring":
             filter_torch = dinv.physics.blur.gaussian_blur(sigma=(3, 3))
             noise_level_img = 0.03
             n_channels = 3  # 3 for color images, 1 for gray-scale images
@@ -40,6 +40,18 @@ class Dataset(BaseDataset):
                 img_size=(n_channels, self.img_size, self.img_size),
                 filter=filter_torch,
                 noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+                device=device
+            )
+        elif self.task == "motion-debluring":
+            psf_size = 31
+            n_channels = 3
+            motion_generator = MotionBlurGenerator((psf_size, psf_size), device=device)
+
+            filters = motion_generator.step(batch_size=3)
+
+            physics = dinv.physics.BlurFFT(
+                img_size=(n_channels, self.img_size, self.img_size),
+                filter=filters["filter"],
                 device=device
             )
         else:
