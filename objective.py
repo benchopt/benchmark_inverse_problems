@@ -67,6 +67,7 @@ class Objective(BaseObjective):
         if isinstance(model, dinv.models.DeepImagePrior):
             psnr = []
             ssim = []
+            lpips = []
 
             for x, y in test_dataloader:
                 x, y = x.to(device), y.to(device)
@@ -75,17 +76,19 @@ class Objective(BaseObjective):
                 ])
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
                 ssim.append(dinv.metric.SSIM()(x_hat, x))
+                lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
 
             psnr = torch.mean(torch.cat(psnr)).item()
             ssim = torch.mean(torch.cat(ssim)).item()
+            lpips = torch.mean(torch.cat(lpips)).item()
 
-            results = dict(PSNR=psnr, SSIM=ssim)
+            results = dict(PSNR=psnr, SSIM=ssim, LPIPS=lpips)
         else:
             results = dinv.test(
                 model,
                 test_dataloader,
                 self.physics,
-                metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
+                metrics=[dinv.metric.PSNR(), dinv.metric.SSIM(), dinv.metric.LPIPS(device=device)],
                 device=device
             )
 
@@ -94,6 +97,7 @@ class Objective(BaseObjective):
         return dict(
             value=results["PSNR"],
             ssim=results["SSIM"],
+            lpips=results["LPIPS"]
         )
 
     def get_one_result(self):
