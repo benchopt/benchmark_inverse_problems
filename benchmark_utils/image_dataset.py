@@ -1,15 +1,21 @@
 import os
+import random
+
 from torch.utils.data import Dataset
 from typing import Callable
 from PIL import Image
 
 
 class ImageDataset(Dataset):
-    def __init__(self, folder: str, transform: Callable = None) -> None:
+    def __init__(self, folder: str, transform: Callable = None, num_images=None):
         self.folder = folder
         self.transform = transform
         self.files = [f for f in os.listdir(folder) if f.endswith((
                       '.png', '.jpg', '.jpeg'))]
+
+        if num_images is not None:
+            self.files.sort()
+            self.files = random.sample(self.files, num_images)
 
     def __len__(self):
         return len(self.files)

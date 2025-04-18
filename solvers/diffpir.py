@@ -30,7 +30,8 @@ class Solver(BaseSolver):
 
         self.model = dinv.sampling.DiffPIR(
             model=denoiser,
-            data_fidelity=dinv.optim.data_fidelity.L2()
+            data_fidelity=dinv.optim.data_fidelity.L2(),
+            device=self.device
         )
         self.model.eval()
 
