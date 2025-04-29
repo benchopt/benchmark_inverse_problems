@@ -7,7 +7,10 @@ from PIL import Image
 
 
 class ImageDataset(Dataset):
-    def __init__(self, folder: str, transform: Callable = None, num_images=None):
+    def __init__(self,
+                 folder: str,
+                 transform: Callable = None,
+                 num_images=None):
         self.folder = folder
         self.transform = transform
         self.files = [f for f in os.listdir(folder) if f.endswith((

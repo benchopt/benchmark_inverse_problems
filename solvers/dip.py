@@ -58,7 +58,10 @@ class Solver(BaseSolver):
 
         # TODO : replace 5 by best_params['iterations'])
         # self.model = self.get_model(best_params['lr'], 5)
-        self.model = self.get_model(best_params['lr'], best_params['iterations'])
+        self.model = self.get_model(
+            best_params['lr'],
+            best_params['iterations']
+        )
 
     def get_result(self):
         return dict(model=self.model, model_name="DIP", device=self.device)

@@ -5,7 +5,9 @@ with safe_import_context() as import_ctx:
     import torch
     from torchvision import transforms
     from benchmark_utils.image_dataset import ImageDataset
-    from benchmark_utils.hugging_face_torch_dataset import HuggingFaceTorchDataset
+    from benchmark_utils.hugging_face_torch_dataset import (
+        HuggingFaceTorchDataset
+    )
     from deepinv.physics import Downsampling, Denoising, GaussianNoise
     from deepinv.physics.generator import MotionBlurGenerator
     from datasets import load_dataset
@@ -16,7 +18,10 @@ class Dataset(BaseDataset):
     name = "BSD500_imnet100"
 
     parameters = {
-        'task': ['denoising', 'gaussian-debluring', 'motion-debluring', 'SRx4'],
+        'task': ['denoising',
+                 'gaussian-debluring',
+                 'motion-debluring',
+                 'SRx4'],
         'img_size': [256],
     }
 
@@ -44,7 +49,10 @@ class Dataset(BaseDataset):
         elif self.task == "motion-debluring":
             psf_size = 31
             n_channels = 3
-            motion_generator = MotionBlurGenerator((psf_size, psf_size), device=device)
+            motion_generator = MotionBlurGenerator(
+                (psf_size, psf_size),
+                device=device
+            )
 
             filters = motion_generator.step(batch_size=1)
 
@@ -55,7 +63,9 @@ class Dataset(BaseDataset):
             )
         elif self.task == "SRx4":
             n_channels = 3
-            physics = Downsampling(img_size=(n_channels, self.img_size, self.img_size),
+            physics = Downsampling(img_size=(n_channels,
+                                             self.img_size,
+                                             self.img_size),
                                    filter="bicubic",
                                    factor=4,
                                    device=device)
@@ -74,7 +84,9 @@ class Dataset(BaseDataset):
 
         dataset_miniImnet100 = load_dataset("mterris/miniImnet100")
         test_dataset = HuggingFaceTorchDataset(
-            dataset_miniImnet100["validation"], key="image", transform=transform
+            dataset_miniImnet100["validation"],
+            key="image",
+            transform=transform
         )
 
         dinv_dataset_path = dinv.datasets.generate_dataset(

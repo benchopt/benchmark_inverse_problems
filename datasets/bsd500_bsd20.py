@@ -14,7 +14,10 @@ class Dataset(BaseDataset):
     name = "BSD500_BSD20"
 
     parameters = {
-        'task': ['denoising', 'gaussian-debluring', 'motion-debluring', 'SRx4'],
+        'task': ['denoising',
+                 'gaussian-debluring',
+                 'motion-debluring',
+                 'SRx4'],
         'img_size': [256],
     }
 
@@ -44,7 +47,10 @@ class Dataset(BaseDataset):
         elif self.task == "motion-debluring":
             psf_size = 31
             n_channels = 3
-            motion_generator = MotionBlurGenerator((psf_size, psf_size), device=device)
+            motion_generator = MotionBlurGenerator(
+                (psf_size, psf_size),
+                device=device
+            )
 
             filters = motion_generator.step(batch_size=1)
 
@@ -54,7 +60,9 @@ class Dataset(BaseDataset):
                 device=device
             )
         elif self.task == "SRx4":
-            physics = Downsampling(img_size=(n_channels, self.img_size, self.img_size),
+            physics = Downsampling(img_size=(n_channels,
+                                             self.img_size,
+                                             self.img_size),
                                    filter="bicubic",
                                    factor=4,
                                    device=device)

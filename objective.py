@@ -88,7 +88,9 @@ class Objective(BaseObjective):
                 model,
                 test_dataloader,
                 self.physics,
-                metrics=[dinv.metric.PSNR(), dinv.metric.SSIM(), dinv.metric.LPIPS(device=device)],
+                metrics=[dinv.metric.PSNR(),
+                         dinv.metric.SSIM(),
+                         dinv.metric.LPIPS(device=device)],
                 device=device
             )
 
