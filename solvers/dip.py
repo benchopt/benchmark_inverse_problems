@@ -33,7 +33,7 @@ class Solver(BaseSolver):
             iterations = trial.suggest_int('iterations', 50, 500, log=True)
 
             # TODO: Remove
-            iterations = 5
+            # iterations = 5
 
             model = self.get_model(lr, iterations)
 
@@ -57,7 +57,11 @@ class Solver(BaseSolver):
         best_params = best_trial.params
 
         # TODO : replace 5 by best_params['iterations'])
-        self.model = self.get_model(best_params['lr'], 5)
+        # self.model = self.get_model(best_params['lr'], 5)
+        self.model = self.get_model(
+            best_params['lr'],
+            best_params['iterations']
+        )
 
     def get_result(self):
         return dict(model=self.model, model_name="DIP", device=self.device)

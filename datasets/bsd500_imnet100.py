@@ -4,17 +4,18 @@ with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch
     from torchvision import transforms
-    from datasets import load_dataset
+    from benchmark_utils.image_dataset import ImageDataset
     from benchmark_utils.hugging_face_torch_dataset import (
         HuggingFaceTorchDataset
     )
-    from deepinv.physics import Denoising, GaussianNoise, Downsampling
+    from deepinv.physics import Downsampling, Denoising, GaussianNoise
     from deepinv.physics.generator import MotionBlurGenerator
+    from datasets import load_dataset
 
 
 class Dataset(BaseDataset):
 
-    name = "CBSD68_Set3c"
+    name = "BSD500_imnet100"
 
     parameters = {
         'task': ['denoising',
@@ -29,8 +30,7 @@ class Dataset(BaseDataset):
     def get_data(self):
         # TODO: Remove
         device = (
-            dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-        )
+            dinv.utils.get_freer_gpu()) if torch.cuda.is_available() else "cpu"
 
         if self.task == "denoising":
             noise_level_img = 0.03
@@ -77,14 +77,16 @@ class Dataset(BaseDataset):
             transforms.ToTensor()
         ])
 
-        dataset_CBSD68 = load_dataset("deepinv/CBSD68")
-        train_dataset = HuggingFaceTorchDataset(
-            dataset_CBSD68["train"], key="png", transform=transform
+        train_dataset = ImageDataset(
+            config.get_data_path("BSD500") / "train",
+            transform=transform
         )
 
-        dataset_Set3c = load_dataset("deepinv/set3c")
+        dataset_miniImnet100 = load_dataset("mterris/miniImnet100")
         test_dataset = HuggingFaceTorchDataset(
-            dataset_Set3c["train"], key="image", transform=transform
+            dataset_miniImnet100["validation"],
+            key="image",
+            transform=transform
         )
 
         dinv_dataset_path = dinv.datasets.generate_dataset(
@@ -93,18 +95,16 @@ class Dataset(BaseDataset):
             physics=physics,
             save_dir=config.get_data_path(
                 key="generated_datasets"
-            ) / "sbsd68_set3c",
+            ) / "bsd500_imnet100",
             dataset_filename=self.task,
             device=device
         )
 
         train_dataset = dinv.datasets.HDF5Dataset(
-            path=dinv_dataset_path,
-            train=True
+            path=dinv_dataset_path, train=True
         )
         test_dataset = dinv.datasets.HDF5Dataset(
-            path=dinv_dataset_path,
-            train=False
+            path=dinv_dataset_path, train=False
         )
 
         x, y = train_dataset[0]
@@ -117,6 +117,6 @@ class Dataset(BaseDataset):
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
-            dataset_name="Set3c",
+            dataset_name="BSD68",
             task_name=self.task
         )
