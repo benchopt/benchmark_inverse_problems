@@ -43,7 +43,8 @@ class Objective(BaseObjective):
                  test_dataset,
                  physics,
                  dataset_name,
-                 task_name):
+                 task_name,
+                 image_size):
         # The keyword arguments of this function are the keys of the dictionary
         # returned by `Dataset.get_data`. This defines the benchmark's
         # API to pass data. This is customizable for each benchmark.
@@ -52,6 +53,7 @@ class Objective(BaseObjective):
         self.physics = physics
         self.dataset_name = dataset_name
         self.task_name = task_name
+        self.image_size = image_size
 
     def evaluate_result(self, model, model_name, device):
         # The keyword arguments of this function are the keys of the
@@ -114,4 +116,4 @@ class Objective(BaseObjective):
         # for `Solver.set_objective`. This defines the
         # benchmark's API for passing the objective to the solver.
         # It is customizable for each benchmark.
-        return dict(train_dataset=self.train_dataset, physics=self.physics)
+        return dict(train_dataset=self.train_dataset, physics=self.physics, image_size=self.image_size)

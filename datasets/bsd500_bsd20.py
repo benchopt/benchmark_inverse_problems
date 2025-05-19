@@ -5,7 +5,12 @@ with safe_import_context() as import_ctx:
     import torch
     from torchvision import transforms
     from benchmark_utils.image_dataset import ImageDataset
-    from deepinv.physics import Downsampling, Denoising, GaussianNoise
+    from deepinv.physics import (
+        Downsampling,
+        Denoising,
+        GaussianNoise,
+        Demosaicing
+    )
     from deepinv.physics.generator import MotionBlurGenerator
 
 
@@ -17,7 +22,8 @@ class Dataset(BaseDataset):
         'task': ['denoising',
                  'gaussian-debluring',
                  'motion-debluring',
-                 'SRx4'],
+                 'SRx4',
+                 'demosaicing'],
         'img_size': [256],
     }
 
@@ -66,6 +72,11 @@ class Dataset(BaseDataset):
                                    filter="bicubic",
                                    factor=4,
                                    device=device)
+        elif self.task == "demosaicing":
+            physics = Demosaicing(img_size=(n_channels,
+                                            self.img_size,
+                                            self.img_size),
+                                  device=device)
         else:
             raise Exception("Unknown task")
 
