@@ -6,6 +6,7 @@ with safe_import_context() as import_ctx:
     import deepinv as dinv
     import numpy as np
 
+
 class Solver(BaseSolver):
     name = 'DPIR'
 

@@ -82,27 +82,35 @@ class Objective(BaseObjective):
 
             psnr = torch.mean(torch.cat(psnr)).item()
             ssim = torch.mean(torch.cat(ssim)).item()
-            lpips = torch.mean(torch.cat(lpips)).item()
 
-            results = dict(PSNR=psnr, SSIM=ssim, LPIPS=lpips)
+            results = dict(PSNR=psnr, SSIM=ssim)
+
+            if self.dataset_name != 'FastMRI':
+                lpips = torch.mean(torch.cat(lpips)).item()
+                results['LPIPS'] = lpips
         else:
+            metrics = [dinv.metric.PSNR(), dinv.metric.SSIM()]
+
+            if self.dataset_name != 'FastMRI':
+                metrics.append(dinv.metric.LPIPS(device=device))
+
             results = dinv.test(
                 model,
                 test_dataloader,
                 self.physics,
-                metrics=[dinv.metric.PSNR(),
-                         dinv.metric.SSIM(),
-                         dinv.metric.LPIPS(device=device)],
+                metrics=metrics,
                 device=device
             )
 
-        # This method can return many metrics in a dictionary. One of these
-        # metrics needs to be `value` for convergence detection purposes.
-        return dict(
+        values = dict(
             value=results["PSNR"],
             ssim=results["SSIM"],
-            lpips=results["LPIPS"]
         )
+
+        if self.dataset_name != 'FastMRI':
+            values['lpips'] = results["LPIPS"]
+
+        return values
 
     def get_one_result(self):
         # Return one solution. The return value should be an object compatible

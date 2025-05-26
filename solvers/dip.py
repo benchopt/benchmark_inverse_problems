@@ -16,7 +16,7 @@ class Solver(BaseSolver):
 
     requirements = ["optuna"]
 
-    def set_objective(self, train_dataset, physics):
+    def set_objective(self, train_dataset, physics, image_size):
         self.train_dataset = train_dataset
         batch_size = 32
         self.train_dataloader = DataLoader(
@@ -26,6 +26,7 @@ class Solver(BaseSolver):
             dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
         )
         self.physics = physics.to(self.device)
+        self.image_size = image_size
 
     def run(self, n_iter):
         def objective(trial):

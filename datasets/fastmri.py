@@ -13,7 +13,7 @@ class Dataset(BaseDataset):
     }
 
     def get_data(self):
-        device = dinv.utils.get_freer_gpu if torch.cuda.is_available() else "cpu"
+        device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
         rng = torch.Generator(device=device).manual_seed(0)
 
         transform = torchvision.transforms.Resize(self.img_size)

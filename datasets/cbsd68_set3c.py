@@ -38,23 +38,24 @@ class Dataset(BaseDataset):
             dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
         )
 
+        n_channels = 3
+        image_size = (n_channels, self.img_size, self.img_size)
+
         if self.task == "denoising":
             noise_level_img = 0.03
             physics = Denoising(GaussianNoise(sigma=noise_level_img))
         elif self.task == "gaussian-debluring":
             filter_torch = dinv.physics.blur.gaussian_blur(sigma=(3, 3))
             noise_level_img = 0.03
-            n_channels = 3
 
             physics = dinv.physics.BlurFFT(
-                img_size=(n_channels, self.img_size, self.img_size),
+                img_size=image_size,
                 filter=filter_torch,
                 noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
                 device=device
             )
         elif self.task == "motion-debluring":
             psf_size = 31
-            n_channels = 3
             motion_generator = MotionBlurGenerator(
                 (psf_size, psf_size),
                 device=device
@@ -63,23 +64,17 @@ class Dataset(BaseDataset):
             filters = motion_generator.step(batch_size=1)
 
             physics = dinv.physics.BlurFFT(
-                img_size=(n_channels, self.img_size, self.img_size),
+                img_size=image_size,
                 filter=filters["filter"],
                 device=device
             )
         elif self.task == "SRx4":
-            n_channels = 3
-            physics = Downsampling(img_size=(n_channels,
-                                             self.img_size,
-                                             self.img_size),
+            physics = Downsampling(img_size=image_size,
                                    filter="bicubic",
                                    factor=4,
                                    device=device)
         elif self.task == "demosaicing":
-            n_channels = 3
-            physics = Demosaicing(img_size=(n_channels,
-                                            self.img_size,
-                                            self.img_size),
+            physics = Demosaicing(img_size=image_size,
                                   device=device)
         else:
             raise Exception("Unknown task")
@@ -130,5 +125,6 @@ class Dataset(BaseDataset):
             test_dataset=test_dataset,
             physics=physics,
             dataset_name="Set3c",
-            task_name=self.task
+            task_name=self.task,
+            image_size=image_size
         )
