@@ -35,3 +35,10 @@ class Solver(BaseSolver):
 
     def get_result(self):
         return dict(model=self.model, model_name="IFFT2", device=self.device)
+
+    def skip(self, **objective_dict):
+
+        if isinstance(objective_dict['physics'], dinv.physics.MRI):
+            return False, None
+        
+        return True, "This solver is only available for MRI dataset"
