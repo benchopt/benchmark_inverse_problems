@@ -8,7 +8,7 @@ with safe_import_context() as import_ctx:
 
 
 class Solver(BaseSolver):
-    name = 'DPIR'
+    name = 'IFFT2'
 
     parameters = {}
 
@@ -28,38 +28,10 @@ class Solver(BaseSolver):
         self.image_size = image_size
 
     def run(self, n_iter):
-        best_sigma = 0
-        best_psnr = 0
-        lr = 0.001
+        def model(y):
+            return self.physics.A_adjoint(y)
 
-        # If the number of channels is different from 1 or 3
-        # then we can't use pretrained DRUNet
-        if self.image_size[0] not in [1, 3]:
-            noise_level_img = 0.03
-            denoiser = dinv.models.DRUNet(in_channels=self.image_size[0],
-                                          out_channels=self.image_size[0],
-                                          pretrained=None,
-                                          device=self.device)
-
-
-        else:
-            for sigma in np.linspace(0.01, 0.1, 10):
-                model = dinv.optim.DPIR(sigma=sigma, device=self.device)
-
-                results = dinv.test(
-                    model,
-                    self.train_dataloader,
-                    self.physics,
-                    metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
-                    device=self.device
-                )
-
-                if results["PSNR"] > best_psnr:
-                    best_sigma = sigma
-                    best_psnr = results["PSNR"]
-
-            self.model = dinv.optim.DPIR(sigma=best_sigma, device=self.device)
-        self.model.eval()
+        self.model = model
 
     def get_result(self):
-        return dict(model=self.model, model_name="DPIR", device=self.device)
+        return dict(model=self.model, model_name="IFFT2", device=self.device)

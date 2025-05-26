@@ -66,6 +66,7 @@ class Objective(BaseObjective):
             self.test_dataset, batch_size=batch_size, shuffle=False
         )
 
+        # DeepImagePrior use images one by one, thus we can't use dinv.test
         if isinstance(model, dinv.models.DeepImagePrior):
             psnr = []
             ssim = []
@@ -78,7 +79,8 @@ class Objective(BaseObjective):
                 ])
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
                 ssim.append(dinv.metric.SSIM()(x_hat, x))
-                lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
+                if (self.dataset_name != 'FastMRI'):
+                    lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
 
             psnr = torch.mean(torch.cat(psnr)).item()
             ssim = torch.mean(torch.cat(ssim)).item()
@@ -88,7 +90,8 @@ class Objective(BaseObjective):
             if self.dataset_name != 'FastMRI':
                 lpips = torch.mean(torch.cat(lpips)).item()
                 results['LPIPS'] = lpips
-        else:
+        elif isinstance(model, (dinv.models.Denoiser,
+                                dinv.models.Reconstructor)):
             metrics = [dinv.metric.PSNR(), dinv.metric.SSIM()]
 
             if self.dataset_name != 'FastMRI':
@@ -101,6 +104,29 @@ class Objective(BaseObjective):
                 metrics=metrics,
                 device=device
             )
+        elif callable(model):
+            psnr = []
+            ssim = []
+            lpips = []
+
+            for x, y, z in test_dataloader:
+                x_hat = model(y)
+                psnr.append(dinv.metric.PSNR()(x_hat, x))
+                ssim.append(dinv.metric.SSIM()(x_hat, x))
+                if (self.dataset_name != 'FastMRI'):
+                    lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
+
+            psnr = torch.mean(torch.cat(psnr)).item()
+            ssim = torch.mean(torch.cat(ssim)).item()
+
+            results = dict(PSNR=psnr, SSIM=ssim)
+
+            if self.dataset_name != 'FastMRI':
+                lpips = torch.mean(torch.cat(lpips)).item()
+                results['LPIPS'] = lpips
+        else:
+            raise ValueError(f"Model type {type(model)} not supported. "
+                             "Update the objective to support this model type.")
 
         values = dict(
             value=results["PSNR"],
