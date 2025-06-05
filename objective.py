@@ -66,6 +66,33 @@ class Objective(BaseObjective):
             self.test_dataset, batch_size=batch_size, shuffle=False
         )
 
+        if self.image_size[0] == 2 and isinstance(model, (dinv.optim.DPIR, dinv.sampling.DiffPIR)):
+            psnr = []
+            ssim = []
+
+            for x, y, z in test_dataloader:
+                x, y = x.to(device), y.to(device)
+
+                y1, y2 = torch.split(y, 1, dim=1)
+
+                breakpoint()
+
+                x_hat_1 = model(y1, self.physics)
+
+                x_hat_2 = model(y2, self.physics)
+
+                x_hat = torch.cat([x_hat_1, x_hat_2], dim=1)
+
+                breakpoint()
+
+                psnr.append(dinv.metric.PSNR()(x_hat, x))
+                ssim.append(dinv.metric.SSIM()(x_hat, x))
+
+            psnr = torch.mean(torch.cat(psnr)).item()
+            ssim = torch.mean(torch.cat(ssim)).item()
+
+            results = dict(PSNR=psnr, SSIM=ssim)
+
         # DeepImagePrior use images one by one, thus we can't use dinv.test
         if isinstance(model, dinv.models.DeepImagePrior):
             psnr = []

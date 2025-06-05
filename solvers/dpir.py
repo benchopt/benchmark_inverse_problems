@@ -34,13 +34,9 @@ class Solver(BaseSolver):
         # If the number of channels is different from 1 or 3
         # then we can't use pretrained DRUNet
         if self.image_size[0] not in [1, 3]:
-            noise_level_img = 0.03
-            denoiser = dinv.models.DRUNet(in_channels=self.image_size[0],
-                                          out_channels=self.image_size[0],
-                                          pretrained=None,
-                                          device=self.device)
+            model = dinv.optim.DPIR(sigma=0.05, device=self.device)
 
-
+            self.model = model
         else:
             for sigma in np.linspace(0.01, 0.1, 10):
                 model = dinv.optim.DPIR(sigma=sigma, device=self.device)
