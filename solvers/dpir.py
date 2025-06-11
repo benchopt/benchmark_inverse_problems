@@ -5,6 +5,7 @@ with safe_import_context() as import_ctx:
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import numpy as np
+    from benchmark_utils.models import DPIR_2C
 
 class Solver(BaseSolver):
     name = 'DPIR'
@@ -34,7 +35,7 @@ class Solver(BaseSolver):
         # If the number of channels is different from 1 or 3
         # then we can't use pretrained DRUNet
         if self.image_size[0] not in [1, 3]:
-            model = dinv.optim.DPIR(sigma=0.05, device=self.device)
+            model = DPIR_2C(sigma=0.05, device=self.device)
 
             self.model = model
         else:

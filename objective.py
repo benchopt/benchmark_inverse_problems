@@ -73,17 +73,7 @@ class Objective(BaseObjective):
             for x, y, z in test_dataloader:
                 x, y = x.to(device), y.to(device)
 
-                y1, y2 = torch.split(y, 1, dim=1)
-
-                breakpoint()
-
-                x_hat_1 = model(y1, self.physics)
-
-                x_hat_2 = model(y2, self.physics)
-
-                x_hat = torch.cat([x_hat_1, x_hat_2], dim=1)
-
-                breakpoint()
+                x_hat = model(y, self.physics)
 
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
                 ssim.append(dinv.metric.SSIM()(x_hat, x))
