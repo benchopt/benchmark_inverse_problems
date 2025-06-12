@@ -66,23 +66,6 @@ class Objective(BaseObjective):
             self.test_dataset, batch_size=batch_size, shuffle=False
         )
 
-        if self.image_size[0] == 2 and isinstance(model, (dinv.optim.DPIR, dinv.sampling.DiffPIR)):
-            psnr = []
-            ssim = []
-
-            for x, y, z in test_dataloader:
-                x, y = x.to(device), y.to(device)
-
-                x_hat = model(y, self.physics)
-
-                psnr.append(dinv.metric.PSNR()(x_hat, x))
-                ssim.append(dinv.metric.SSIM()(x_hat, x))
-
-            psnr = torch.mean(torch.cat(psnr)).item()
-            ssim = torch.mean(torch.cat(ssim)).item()
-
-            results = dict(PSNR=psnr, SSIM=ssim)
-
         # DeepImagePrior use images one by one, thus we can't use dinv.test
         if isinstance(model, dinv.models.DeepImagePrior):
             psnr = []
@@ -143,7 +126,7 @@ class Objective(BaseObjective):
                 results['LPIPS'] = lpips
         else:
             raise ValueError(f"Model type {type(model)} not supported. "
-                             "Update the objective to support this model type.")
+                              "Update the objective to support this model type.")
 
         values = dict(
             value=results["PSNR"],

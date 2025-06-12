@@ -29,11 +29,11 @@ class DPIR_2C_Denoiser(Denoiser):
         self.model_c2 = DRUNet(*DRUNet_args, **DRUNet_kwargs)
     
     def forward(self, y, sigma):
-        breakpoint()
-
         y1, y2 = torch.split(y, 1, dim=1)
 
-        x_hat_1 = self.model_c1(y1)
-        x_hat_2 = self.model_c2(y2)
+        x_hat_1 = self.model_c1(y1, sigma=sigma)
+        x_hat_2 = self.model_c2(y2, sigma=sigma)
 
         x_hat = torch.cat([x_hat_1, x_hat_2], dim=1)
+        
+        return x_hat
