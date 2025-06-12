@@ -4,6 +4,7 @@ with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
+    from benchmark_utils.denoiser_2c import Denoiser_2c
 
 
 class Solver(BaseSolver):
@@ -28,13 +29,17 @@ class Solver(BaseSolver):
         self.image_size = image_size
 
     def run(self, n_iter):
-        denoiser = dinv.models.DRUNet(pretrained="download").to(self.device)
+        if self.image_size[0] == 2:
+            denoiser = Denoiser_2c(device=self.device)
+        else:
+            denoiser = dinv.models.DRUNet(pretrained="download").to(self.device)
 
         self.model = dinv.sampling.DiffPIR(
             model=denoiser,
             data_fidelity=dinv.optim.data_fidelity.L2(),
             device=self.device
         )
+
         self.model.eval()
 
     def get_result(self):

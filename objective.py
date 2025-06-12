@@ -96,8 +96,6 @@ class Objective(BaseObjective):
 
             if self.dataset_name != 'FastMRI':
                 metrics.append(dinv.metric.LPIPS(device=device))
-                
-            breakpoint()
 
             results = dinv.test(
                 model,
