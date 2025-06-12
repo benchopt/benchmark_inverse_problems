@@ -5,7 +5,13 @@ with safe_import_context() as import_ctx:
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import numpy as np
-    from benchmark_utils.models import DPIR_2C
+    from deepinv.optim import BaseOptim
+    from deepinv.models import Denoiser
+    from deepinv.optim.prior import PnP
+    from deepinv.optim.data_fidelity import L2
+    from deepinv.optim.optimizers import create_iterator
+    from deepinv.optim.dpir import get_DPIR_params
+    from deepinv.models import DRUNet
 
 class Solver(BaseSolver):
     name = 'DPIR'
@@ -31,31 +37,64 @@ class Solver(BaseSolver):
         best_sigma = 0
         best_psnr = 0
         lr = 0.001
+        
+        # If the number of channels is 2 we use a custom DPIR solver
+        if self.image_size[0] == 2:
+            model_class = DPIR_2C
+        else:
+            model_class = dinv.optim.DPIR
 
         # If the number of channels is different from 1 or 3
         # then we can't use pretrained DRUNet
-        if self.image_size[0] not in [1, 3]:
-            model = DPIR_2C(sigma=0.05, device=self.device)
+        for sigma in np.linspace(0.01, 0.1, 10):
+            model = model_class(sigma=sigma, device=self.device)
 
-            self.model = model
-        else:
-            for sigma in np.linspace(0.01, 0.1, 10):
-                model = dinv.optim.DPIR(sigma=sigma, device=self.device)
+            results = dinv.test(
+                model,
+                self.train_dataloader,
+                self.physics,
+                metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
+                device=self.device
+            )
 
-                results = dinv.test(
-                    model,
-                    self.train_dataloader,
-                    self.physics,
-                    metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
-                    device=self.device
-                )
+            if results["PSNR"] > best_psnr:
+                best_sigma = sigma
+                best_psnr = results["PSNR"]
 
-                if results["PSNR"] > best_psnr:
-                    best_sigma = sigma
-                    best_psnr = results["PSNR"]
-
-            self.model = dinv.optim.DPIR(sigma=best_sigma, device=self.device)
+            self.model = model_class(sigma=best_sigma, device=self.device)
         self.model.eval()
 
     def get_result(self):
         return dict(model=self.model, model_name="DPIR", device=self.device)
+
+# Custom DPIR solver with 2 channels
+class DPIR_2C(BaseOptim):
+    def __init__(self, sigma=0.1, device="cuda"):
+        prior = PnP(denoiser=DPIR_2C_Denoiser(in_channels=1, out_channels=1, pretrained="download", device=device))
+        sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma)
+        params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
+        super(DPIR_2C, self).__init__(
+            create_iterator("HQS", prior=prior, F_fn=None, g_first=False),
+            max_iter=max_iter,
+            data_fidelity=L2(),
+            prior=prior,
+            early_stop=False,
+            params_algo=params_algo,
+        )
+
+
+class DPIR_2C_Denoiser(Denoiser):
+    def __init__(self, *DRUNet_args, **DRUNet_kwargs):
+        super(DPIR_2C_Denoiser, self).__init__()
+        self.model_c1 = DRUNet(*DRUNet_args, **DRUNet_kwargs)
+        self.model_c2 = DRUNet(*DRUNet_args, **DRUNet_kwargs)
+    
+    def forward(self, y, sigma):
+        y1, y2 = torch.split(y, 1, dim=1)
+
+        x_hat_1 = self.model_c1(y1, sigma=sigma)
+        x_hat_2 = self.model_c2(y2, sigma=sigma)
+
+        x_hat = torch.cat([x_hat_1, x_hat_2], dim=1)
+        
+        return x_hat

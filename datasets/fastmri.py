@@ -82,6 +82,8 @@ class Dataset(BaseDataset):
 
         x, y, z = test_dataset[0]
         dinv.utils.plot([x.unsqueeze(0), y.unsqueeze(0), z["mask"].unsqueeze(0)])
+        
+        breakpoint()
 
         return dict(
             train_dataset=train_dataset,
