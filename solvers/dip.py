@@ -33,9 +33,6 @@ class Solver(BaseSolver):
             lr = trial.suggest_float('lr', 1e-5, 1e-2, log=True)
             iterations = trial.suggest_int('iterations', 50, 500, log=True)
 
-            # TODO: Remove
-            # iterations = 5
-
             model = self.get_model(lr, iterations)
 
             psnr = []
@@ -57,8 +54,6 @@ class Solver(BaseSolver):
         best_trial = study.best_trial
         best_params = best_trial.params
 
-        # TODO : replace 5 by best_params['iterations'])
-        # self.model = self.get_model(best_params['lr'], 5)
         self.model = self.get_model(
             best_params['lr'],
             best_params['iterations']

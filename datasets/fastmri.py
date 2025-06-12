@@ -32,8 +32,6 @@ class Dataset(BaseDataset):
             download=True,
         )
 
-        dinv.utils.plot({"knee": knee_dataset[0], "brain": brain_dataset[0]})
-
         physics_generator = dinv.physics.generator.GaussianMaskGenerator(
             img_size=(self.img_size, self.img_size),
             acceleration=4,
@@ -62,26 +60,11 @@ class Dataset(BaseDataset):
         )
 
         train_dataset = dinv.datasets.HDF5Dataset(
-            dataset_path, split="train", load_physics_generator_params=True
+            dataset_path, split="train"
         )
         test_dataset = dinv.datasets.HDF5Dataset(
-            dataset_path, split="test", load_physics_generator_params=True
+            dataset_path, split="test"
         )
-
-        dinv.utils.plot(
-            {
-                "x0": train_dataset[0][0],
-                "mask0": train_dataset[0][2]["mask"],
-                "x1": train_dataset[1][0],
-                "mask1": train_dataset[1][2]["mask"],
-            }
-        )
-
-        x, y, z = train_dataset[0]
-        dinv.utils.plot([x.unsqueeze(0), y.unsqueeze(0), z["mask"].unsqueeze(0)])
-
-        x, y, z = test_dataset[0]
-        dinv.utils.plot([x.unsqueeze(0), y.unsqueeze(0), z["mask"].unsqueeze(0)])
 
         return dict(
             train_dataset=train_dataset,
