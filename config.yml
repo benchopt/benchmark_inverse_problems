@@ -3,3 +3,4 @@ data_paths:
     generated_datasets: generated_datasets
     generated_trainings: generated_training
     BSD500: BSD500/BSR/BSDS500/data/images
+    fastmri: fastMRI

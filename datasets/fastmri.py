@@ -31,6 +31,15 @@ class Dataset(BaseDataset):
             train=True,
             download=True,
         )
+        
+        dataset = dinv.datasets.FastMRISliceDataset(
+            config.get_data_path(
+                key="fastmri",
+            ),
+            slice_index="middle",
+        )
+
+        breakpoint()
 
         physics_generator = dinv.physics.generator.GaussianMaskGenerator(
             img_size=(self.img_size, self.img_size),

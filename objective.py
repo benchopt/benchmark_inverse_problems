@@ -109,7 +109,7 @@ class Objective(BaseObjective):
             ssim = []
             lpips = []
 
-            for x, y, z in test_dataloader:
+            for x, y in test_dataloader:
                 x_hat = model(y)
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
                 ssim.append(dinv.metric.SSIM()(x_hat, x))
