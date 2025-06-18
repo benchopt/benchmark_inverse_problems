@@ -1,6 +1,6 @@
-data_home: /Users/melvinenargeot/Data/benchmark_inverse_problems
+data_home: /home/mind/mnargeot/benchmarks/benchmark_inverse_problems/data_tmp
 data_paths:
     generated_datasets: generated_datasets
     generated_trainings: generated_training
     BSD500: BSD500/BSR/BSDS500/data/images
-    fastmri: fastMRI
+    fastmri: /data/parietal/store3/data/fastMRI-decompressed/

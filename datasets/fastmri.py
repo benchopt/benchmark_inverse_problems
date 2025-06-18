@@ -1,6 +1,6 @@
 from benchopt import BaseDataset, safe_import_context, config
 
-with (safe_import_context() as import_ctx):
+with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch, torchvision
 
@@ -17,7 +17,7 @@ class Dataset(BaseDataset):
         rng = torch.Generator(device=device).manual_seed(0)
 
         transform = torchvision.transforms.Resize(self.img_size)
-        knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
+        """knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
             dinv.utils.get_data_home(),
             anatomy="knee",
             transform=transform,
@@ -30,16 +30,21 @@ class Dataset(BaseDataset):
             transform=transform,
             train=True,
             download=True,
-        )
+        )"""
         
-        dataset = dinv.datasets.FastMRISliceDataset(
+        train_dataset = dinv.datasets.FastMRISliceDataset(
             config.get_data_path(
                 key="fastmri",
-            ),
+            ) / "singlecoil_train",
             slice_index="middle",
         )
 
-        breakpoint()
+        test_dataset = dinv.datasets.FastMRISliceDataset(
+            config.get_data_path(
+                key="fastmri",
+            ) / "singlecoil_test",
+            slice_index="middle",
+        )
 
         physics_generator = dinv.physics.generator.GaussianMaskGenerator(
             img_size=(self.img_size, self.img_size),
@@ -53,18 +58,18 @@ class Dataset(BaseDataset):
                                    img_size=(self.img_size, self.img_size),
                                    device=device)
 
-        dataset_path = dinv.datasets.generate_dataset(
+        """dataset_path = dinv.datasets.generate_dataset(
             train_dataset=knee_dataset,
             test_dataset=brain_dataset,
             val_dataset=None,
             physics=physics,
             physics_generator=physics_generator,
             save_physics_generator_params=True,
-            overwrite_existing=False,
+            overwrite_existing=True,
             device=device,
             save_dir=config.get_data_path(
-                key="generated_datasets"
-            ) / "fastmri",
+                key="fastmri",
+            ) / "generated_dataset",
             batch_size=1,
         )
 
@@ -73,7 +78,9 @@ class Dataset(BaseDataset):
         )
         test_dataset = dinv.datasets.HDF5Dataset(
             dataset_path, split="test"
-        )
+        )"""
+        
+        breakpoint()
 
         return dict(
             train_dataset=train_dataset,
