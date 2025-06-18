@@ -16,8 +16,8 @@ class Dataset(BaseDataset):
         device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
         rng = torch.Generator(device=device).manual_seed(0)
 
-        transform = torchvision.transforms.Resize(self.img_size)
-        """knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
+        """transform = torchvision.transforms.Resize(self.img_size)
+        knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
             dinv.utils.get_data_home(),
             anatomy="knee",
             transform=transform,
@@ -46,17 +46,28 @@ class Dataset(BaseDataset):
             slice_index="middle",
         )
 
+        x, y = train_dataset[0]          
+        img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
+        n_coils = y.shape[2]
+
         physics_generator = dinv.physics.generator.GaussianMaskGenerator(
-            img_size=(self.img_size, self.img_size),
+            img_size=img_size,
             acceleration=4,
             rng=rng,
             device=device
         )
         mask = physics_generator.step()["mask"]
 
-        physics = dinv.physics.MRI(mask=mask,
+        """physics = dinv.physics.MRI(mask=mask,
                                    img_size=(self.img_size, self.img_size),
-                                   device=device)
+                                   device=device)"""
+
+        physics = dinv.physics.MultiCoilMRI(
+            mask=mask,
+            img_size=img_size,
+            coil_maps=torch.ones((n_coils,) + kspace_shape, dtype=torch.complex64),
+            device=device,
+        )
 
         """dataset_path = dinv.datasets.generate_dataset(
             train_dataset=knee_dataset,
@@ -79,8 +90,6 @@ class Dataset(BaseDataset):
         test_dataset = dinv.datasets.HDF5Dataset(
             dataset_path, split="test"
         )"""
-        
-        breakpoint()
 
         return dict(
             train_dataset=train_dataset,
