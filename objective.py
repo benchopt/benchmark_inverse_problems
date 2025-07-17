@@ -61,7 +61,7 @@ class Objective(BaseObjective):
         # benchmark's API to pass solvers' result. This is customizable for
         # each benchmark.
 
-        batch_size = 2
+        batch_size = 1
         test_dataloader = DataLoader(
             self.test_dataset, batch_size=batch_size, shuffle=False
         )
@@ -110,6 +110,7 @@ class Objective(BaseObjective):
             lpips = []
 
             for x, y in test_dataloader:
+                x, y = x.to(device), y.to(device)
                 x_hat = model(y)
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
                 ssim.append(dinv.metric.SSIM()(x_hat, x))

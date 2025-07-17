@@ -3,6 +3,7 @@ from benchopt import BaseDataset, safe_import_context, config
 with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch, torchvision
+    from benchmark_utils.fastmri_dataset import FastMRIDataset
 
 
 class Dataset(BaseDataset):
@@ -30,46 +31,21 @@ class Dataset(BaseDataset):
             transform=transform,
             train=True,
             download=True,
-        )"""
+        )
         
-        train_dataset = dinv.datasets.FastMRISliceDataset(
-            config.get_data_path(
-                key="fastmri",
-            ) / "singlecoil_train",
-            slice_index="middle",
-        )
-
-        test_dataset = dinv.datasets.FastMRISliceDataset(
-            config.get_data_path(
-                key="fastmri",
-            ) / "singlecoil_test",
-            slice_index="middle",
-        )
-
-        x, y = train_dataset[0]          
-        img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
-        n_coils = y.shape[2]
-
         physics_generator = dinv.physics.generator.GaussianMaskGenerator(
-            img_size=img_size,
+            img_size=(self.img_size, self.img_size), # img_size,
             acceleration=4,
             rng=rng,
             device=device
         )
         mask = physics_generator.step()["mask"]
 
-        """physics = dinv.physics.MRI(mask=mask,
+        physics = dinv.physics.MRI(mask=mask,
                                    img_size=(self.img_size, self.img_size),
-                                   device=device)"""
-
-        physics = dinv.physics.MultiCoilMRI(
-            mask=mask,
-            img_size=img_size,
-            coil_maps=torch.ones((n_coils,) + kspace_shape, dtype=torch.complex64),
-            device=device,
-        )
-
-        """dataset_path = dinv.datasets.generate_dataset(
+                                   device=device)
+        
+        dataset_path = dinv.datasets.generate_dataset(
             train_dataset=knee_dataset,
             test_dataset=brain_dataset,
             val_dataset=None,
@@ -89,7 +65,51 @@ class Dataset(BaseDataset):
         )
         test_dataset = dinv.datasets.HDF5Dataset(
             dataset_path, split="test"
+        )
+
+        return dict(
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            physics=physics,
+            dataset_name="FastMRI",
+            task_name="MRI",
+            image_size=(2, 128, 128)
         )"""
+
+        img_size = (320, 320)
+        kspace_size = (640, 400)
+
+        physics_generator = dinv.physics.generator.GaussianMaskGenerator(
+            img_size=kspace_size,
+            acceleration=4,
+            rng=rng,
+            device=device
+        )
+        mask = physics_generator.step()["mask"]
+        
+        train_dataset = FastMRIDataset(dinv.datasets.FastMRISliceDataset(
+            config.get_data_path(
+                key="fastmri",
+            ) / "singlecoil_train",
+            slice_index="middle",
+        ), mask)
+
+        test_dataset = FastMRIDataset(dinv.datasets.FastMRISliceDataset(
+            config.get_data_path(
+                key="fastmri",
+            ) / "singlecoil_test",
+            slice_index="middle",
+        ), mask)
+        
+        x, y = train_dataset[0]
+        n_coils = y.shape[2]
+
+        physics = dinv.physics.MultiCoilMRI(
+            mask=mask,
+            img_size=img_size,
+            coil_maps=torch.ones((n_coils,) + kspace_size, dtype=torch.complex64),
+            device=device,
+        )
 
         return dict(
             train_dataset=train_dataset,
