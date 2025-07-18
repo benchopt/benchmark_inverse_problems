@@ -111,13 +111,13 @@ class Dataset(BaseDataset):
             config.get_data_path(key="fastmri") / "brain" / "fastmri.h5",
         )
 
-        train_dataset = dinv.datasets.FastMRISliceDataset(
+        train_dataset = FastMRIDataset(dinv.datasets.FastMRISliceDataset(
             config.get_data_path(key="fastmri") / "brain", slice_index="middle"
-        )
+        ))
         
-        test_dataset = dinv.datasets.FastMRISliceDataset(
+        test_dataset = FastMRIDataset(dinv.datasets.FastMRISliceDataset(
             config.get_data_path(key="fastmri") / "brain", slice_index="middle"
-        )
+        ))
 
         x, y = next(iter(DataLoader(train_dataset)))
         
@@ -130,6 +130,9 @@ class Dataset(BaseDataset):
         mask = physics_generator.step(
             batch_size=y.size(0), img_size=y.shape[-2:]
         )["mask"]
+        
+        train_dataset.mask = mask
+        test_dataset.mask = mask
 
         physics = dinv.physics.MultiCoilMRI(
             img_size=img_size,
@@ -138,11 +141,13 @@ class Dataset(BaseDataset):
             device=device,
         )
 
+        x, y = train_dataset[0]
+
         return dict(
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
             dataset_name="FastMRI",
             task_name="MRI",
-            image_size=(2, 128, 128)
+            image_sizes=(y.shape, x.shape)
         )

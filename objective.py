@@ -44,7 +44,7 @@ class Objective(BaseObjective):
                  physics,
                  dataset_name,
                  task_name,
-                 image_size):
+                 image_sizes):
         # The keyword arguments of this function are the keys of the dictionary
         # returned by `Dataset.get_data`. This defines the benchmark's
         # API to pass data. This is customizable for each benchmark.
@@ -53,7 +53,7 @@ class Objective(BaseObjective):
         self.physics = physics
         self.dataset_name = dataset_name
         self.task_name = task_name
-        self.image_size = image_size
+        self.image_sizes = image_sizes
 
     def evaluate_result(self, model, model_name, device):
         # The keyword arguments of this function are the keys of the
@@ -96,6 +96,9 @@ class Objective(BaseObjective):
 
             if self.dataset_name != 'FastMRI':
                 metrics.append(dinv.metric.LPIPS(device=device))
+                
+            if self.task_name == "MRI":
+                metrics = []
 
             results = dinv.test(
                 model,
@@ -151,4 +154,4 @@ class Objective(BaseObjective):
         # for `Solver.set_objective`. This defines the
         # benchmark's API for passing the objective to the solver.
         # It is customizable for each benchmark.
-        return dict(train_dataset=self.train_dataset, physics=self.physics, image_size=self.image_size)
+        return dict(train_dataset=self.train_dataset, physics=self.physics, image_sizes=self.image_sizes)

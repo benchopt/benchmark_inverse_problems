@@ -5,6 +5,7 @@ with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
+    import torchvision
 
 
 class Solver(BaseSolver):
@@ -19,7 +20,7 @@ class Solver(BaseSolver):
 
     requirements = []
 
-    def set_objective(self, train_dataset, physics, image_size):
+    def set_objective(self, train_dataset, physics, image_sizes):
         batch_size = 1
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
@@ -28,20 +29,17 @@ class Solver(BaseSolver):
             dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
         )
         self.physics = physics.to(self.device)
-        self.image_size = image_size
+        self.image_sizes = image_sizes
 
     def run(self, n_iter):
         epochs = 4
 
         model = dinv.models.UNet(
-            in_channels=self.image_size[0], out_channels=self.image_size[0], scales=3, batch_norm=False
+            in_channels=self.image_sizes[0][0], out_channels=self.image_sizes[1][0], scales=3, batch_norm=False
         ).to(self.device)
 
         verbose = True  # print training information
         wandb_vis = False  # plot curves and images in Weight&Bias
-
-        # choose training losses
-        losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
 
         # choose optimizer and scheduler
         optimizer = torch.optim.Adam(
@@ -50,6 +48,28 @@ class Solver(BaseSolver):
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer, step_size=int(epochs * 0.8)
         )
+        
+        x, y = next(iter(self.train_dataloader))
+        
+        transform = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.CenterCrop(x.shape[-2:]),
+                dinv.metric.functional.complex_abs,
+            ]
+        )
+
+        class CropMSE(dinv.metric.MSE):
+            def forward(self, x_net=None, x=None, *args, **kwargs):
+                return super().forward(transform(x_net), x, *args, **kwargs)
+
+
+        class CropPSNR(dinv.metric.PSNR):
+            def forward(self, x_net=None, x=None, *args, **kwargs):
+                return super().forward(transform(x_net), x, *args, **kwargs)
+
+        # choose training losses
+        losses = dinv.loss.SupLoss(metric=CropMSE())
+        
         trainer = dinv.Trainer(
             model,
             device=self.device,
@@ -59,6 +79,7 @@ class Solver(BaseSolver):
             epochs=epochs,
             scheduler=scheduler,
             losses=losses,
+            metrics=CropPSNR(),
             optimizer=optimizer,
             show_progress_bar=True,
             train_dataloader=self.train_dataloader,
