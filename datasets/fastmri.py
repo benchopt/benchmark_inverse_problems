@@ -3,6 +3,7 @@ from benchopt import BaseDataset, safe_import_context, config
 with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch, torchvision
+    from torch.utils.data import DataLoader
     from benchmark_utils.fastmri_dataset import FastMRIDataset
 
 
@@ -66,6 +67,8 @@ class Dataset(BaseDataset):
         test_dataset = dinv.datasets.HDF5Dataset(
             dataset_path, split="test"
         )
+        
+        breakpoint()
 
         return dict(
             train_dataset=train_dataset,
@@ -76,7 +79,8 @@ class Dataset(BaseDataset):
             image_size=(2, 128, 128)
         )"""
 
-        img_size = (320, 320)
+
+        """img_size = (320, 320)
         kspace_size = (640, 400)
 
         physics_generator = dinv.physics.generator.GaussianMaskGenerator(
@@ -99,15 +103,38 @@ class Dataset(BaseDataset):
                 key="fastmri",
             ) / "singlecoil_test",
             slice_index="middle",
-        ), mask)
+        ), mask)"""
         
-        x, y = train_dataset[0]
+        # Remove this lines
+        dinv.datasets.download_archive(
+            dinv.utils.get_image_url("demo_fastmri_brain_multicoil.h5"),
+            config.get_data_path(key="fastmri") / "brain" / "fastmri.h5",
+        )
+
+        train_dataset = dinv.datasets.FastMRISliceDataset(
+            config.get_data_path(key="fastmri") / "brain", slice_index="middle"
+        )
+        
+        test_dataset = dinv.datasets.FastMRISliceDataset(
+            config.get_data_path(key="fastmri") / "brain", slice_index="middle"
+        )
+
+        x, y = next(iter(DataLoader(train_dataset)))
+        
+        img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
         n_coils = y.shape[2]
+        
+        physics_generator = dinv.physics.generator.GaussianMaskGenerator(
+            img_size=kspace_shape, acceleration=4, rng=rng, device=device
+        )
+        mask = physics_generator.step(
+            batch_size=y.size(0), img_size=y.shape[-2:]
+        )["mask"]
 
         physics = dinv.physics.MultiCoilMRI(
-            mask=mask,
             img_size=img_size,
-            coil_maps=torch.ones((n_coils,) + kspace_size, dtype=torch.complex64),
+            mask=mask,
+            coil_maps=torch.ones((n_coils,) + kspace_shape, dtype=torch.complex64),
             device=device,
         )
 
