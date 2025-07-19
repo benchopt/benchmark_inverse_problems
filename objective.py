@@ -7,6 +7,8 @@ with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
+    import torchvision
+    from benchmark_utils.metrics import CustomPSNR
 
 
 # The benchmark objective must be named `Objective` and
@@ -98,7 +100,19 @@ class Objective(BaseObjective):
                 metrics.append(dinv.metric.LPIPS(device=device))
                 
             if self.task_name == "MRI":
-                metrics = []
+                x, y = next(iter(test_dataloader))
+                
+                breakpoint()
+
+                transform = torchvision.transforms.Compose(
+                    [
+                        torchvision.transforms.CenterCrop(x.shape[-2:]),
+                        dinv.metric.functional.complex_abs,
+                    ]
+                )
+
+                CustomPSNR.transform = transform
+                metrics = [CustomPSNR()]
 
             results = dinv.test(
                 model,

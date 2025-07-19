@@ -6,6 +6,7 @@ with safe_import_context() as import_ctx:
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import torchvision
+    from benchmark_utils.metrics import CustomMSE, CustomPSNR
 
 
 class Solver(BaseSolver):
@@ -50,7 +51,7 @@ class Solver(BaseSolver):
         )
         
         x, y = next(iter(self.train_dataloader))
-        
+
         transform = torchvision.transforms.Compose(
             [
                 torchvision.transforms.CenterCrop(x.shape[-2:]),
@@ -58,17 +59,11 @@ class Solver(BaseSolver):
             ]
         )
 
-        class CropMSE(dinv.metric.MSE):
-            def forward(self, x_net=None, x=None, *args, **kwargs):
-                return super().forward(transform(x_net), x, *args, **kwargs)
-
-
-        class CropPSNR(dinv.metric.PSNR):
-            def forward(self, x_net=None, x=None, *args, **kwargs):
-                return super().forward(transform(x_net), x, *args, **kwargs)
+        CustomMSE.transform = transform
+        CustomPSNR.transform = transform
 
         # choose training losses
-        losses = dinv.loss.SupLoss(metric=CropMSE())
+        losses = dinv.loss.SupLoss(metric=CustomMSE())
         
         trainer = dinv.Trainer(
             model,
@@ -79,7 +74,7 @@ class Solver(BaseSolver):
             epochs=epochs,
             scheduler=scheduler,
             losses=losses,
-            metrics=CropPSNR(),
+            metrics=CustomPSNR(),
             optimizer=optimizer,
             show_progress_bar=True,
             train_dataloader=self.train_dataloader,
