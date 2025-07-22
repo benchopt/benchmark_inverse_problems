@@ -7,6 +7,7 @@ with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torchvision
     from benchmark_utils.metrics import CustomMSE, CustomPSNR
+    from benchmark_utils.custom_models import CustomUNet
 
 
 class Solver(BaseSolver):
@@ -35,9 +36,17 @@ class Solver(BaseSolver):
     def run(self, n_iter):
         epochs = 4
 
-        model = dinv.models.UNet(
-            in_channels=self.image_sizes[0][0], out_channels=self.image_sizes[1][0], scales=3, batch_norm=False
-        ).to(self.device)
+        #model = dinv.models.UNet(
+        #    in_channels=self.image_sizes[0][0], out_channels=self.image_sizes[1][0], scales=3, batch_norm=False
+        #).to(self.device)
+
+        model = CustomUNet(
+            in_channels=8,
+            out_channels=8,
+            scales=3,
+            batch_norm=False,
+            is_mri=True,
+        )
 
         verbose = True  # print training information
         wandb_vis = False  # plot curves and images in Weight&Bias

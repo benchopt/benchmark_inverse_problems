@@ -27,7 +27,8 @@ class FastMRIDataset(Dataset):
         if self.mask is not None:
             x, y = x.to(self.mask.device), y.to(self.mask.device)
             y = y * self.mask.squeeze(0)
+
+        # We add an imaginary part of zeros
         x = torch.cat([x, torch.zeros_like(x)], dim=0)
-        y = y.reshape(8, y.shape[2], y.shape[3])
 
         return x, y

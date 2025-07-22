@@ -101,8 +101,6 @@ class Objective(BaseObjective):
                 
             if self.task_name == "MRI":
                 x, y = next(iter(test_dataloader))
-                
-                breakpoint()
 
                 transform = torchvision.transforms.Compose(
                     [
@@ -119,7 +117,7 @@ class Objective(BaseObjective):
                 test_dataloader,
                 self.physics,
                 metrics=metrics,
-                device=device
+                device=device,
             )
         elif callable(model):
             psnr = []
