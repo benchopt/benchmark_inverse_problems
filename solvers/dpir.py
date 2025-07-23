@@ -5,12 +5,14 @@ with safe_import_context() as import_ctx:
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import numpy as np
+    import torchvision
     from deepinv.optim import BaseOptim
     from deepinv.optim.prior import PnP
     from deepinv.optim.data_fidelity import L2
     from deepinv.optim.optimizers import create_iterator
     from deepinv.optim.dpir import get_DPIR_params
     from benchmark_utils.denoiser_2c import Denoiser_2c
+    from benchmark_utils.metrics import CustomPSNR
 
 class Solver(BaseSolver):
     name = 'DPIR'
@@ -47,18 +49,39 @@ class Solver(BaseSolver):
         # then we can't use pretrained DRUNet
         for sigma in np.linspace(0.01, 0.1, 10):
             model = model_class(sigma=sigma, device=self.device)
+            
+            for x, y in self.train_dataloader:
+                x, y = x.to(self.device), y.to(self.device)
 
-            results = dinv.test(
-                model,
-                self.train_dataloader,
-                self.physics,
-                metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
-                device=self.device
-            )
+            x_hat = model(y)
+            
+            if (self.dataset_name == 'FastMRI'):
+                transform = torchvision.transforms.Compose(
+                    [
+                        torchvision.transforms.CenterCrop(x.shape[-2:]),
+                        dinv.metric.functional.complex_abs,
+                    ]
+                )
 
-            if results["PSNR"] > best_psnr:
+                CustomPSNR.transform = transform
+                
+                psnr.append(CustomPSNR()(x_hat, x))
+            else:
+                psnr.append(dinv.metric.PSNR()(x_hat, x))
+                
+            psnr = torch.mean(torch.cat(psnr)).item()
+
+            #results = dinv.test(
+            #    model,
+            #    self.train_dataloader,
+            #    self.physics,
+            #    metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
+            #    device=self.device
+            #)
+
+            if psnr > best_psnr:
                 best_sigma = sigma
-                best_psnr = results["PSNR"]
+                best_psnr = psnr
 
             self.model = model_class(sigma=best_sigma, device=self.device)
         self.model.eval()

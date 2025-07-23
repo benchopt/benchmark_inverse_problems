@@ -149,5 +149,5 @@ class Dataset(BaseDataset):
             physics=physics,
             dataset_name="FastMRI",
             task_name="MRI",
-            image_sizes=(y.shape, x.shape)
+            image_size=y.shape
         )

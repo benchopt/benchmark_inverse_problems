@@ -22,7 +22,7 @@ class Solver(BaseSolver):
 
     requirements = []
 
-    def set_objective(self, train_dataset, physics, image_sizes):
+    def set_objective(self, train_dataset, physics, image_size):
         batch_size = 1
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
@@ -31,22 +31,16 @@ class Solver(BaseSolver):
             dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
         )
         self.physics = physics.to(self.device)
-        self.image_sizes = image_sizes
+        self.image_size = image_size
 
     def run(self, n_iter):
         epochs = 4
+        
+        x, y = next(iter(self.train_dataloader))
 
-        #model = dinv.models.UNet(
-        #    in_channels=self.image_sizes[0][0], out_channels=self.image_sizes[1][0], scales=3, batch_norm=False
-        #).to(self.device)
-
-        model = CustomUNet(
-            in_channels=8,
-            out_channels=8,
-            scales=3,
-            batch_norm=False,
-            is_mri=True,
-        )
+        model = dinv.models.UNet(
+            in_channels=y.shape[1], out_channels=x.shape[1], scales=3, batch_norm=False
+        ).to(self.device)
 
         verbose = True  # print training information
         wandb_vis = False  # plot curves and images in Weight&Bias
@@ -58,8 +52,6 @@ class Solver(BaseSolver):
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer, step_size=int(epochs * 0.8)
         )
-        
-        x, y = next(iter(self.train_dataloader))
 
         transform = torchvision.transforms.Compose(
             [

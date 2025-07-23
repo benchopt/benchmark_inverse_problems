@@ -46,7 +46,7 @@ class Objective(BaseObjective):
                  physics,
                  dataset_name,
                  task_name,
-                 image_sizes):
+                 image_size):
         # The keyword arguments of this function are the keys of the dictionary
         # returned by `Dataset.get_data`. This defines the benchmark's
         # API to pass data. This is customizable for each benchmark.
@@ -55,7 +55,7 @@ class Objective(BaseObjective):
         self.physics = physics
         self.dataset_name = dataset_name
         self.task_name = task_name
-        self.image_sizes = image_sizes
+        self.image_size = image_size
 
     def evaluate_result(self, model, model_name, device):
         # The keyword arguments of this function are the keys of the
@@ -69,37 +69,49 @@ class Objective(BaseObjective):
         )
 
         # DeepImagePrior use images one by one, thus we can't use dinv.test
-        if isinstance(model, dinv.models.DeepImagePrior):
-            psnr = []
-            ssim = []
-            lpips = []
+        #if isinstance(model, dinv.models.DeepImagePrior):
+        psnr = []
+        ssim = []
+        lpips = []
 
-            for x, y in test_dataloader:
-                x, y = x.to(device), y.to(device)
+        for x, y in test_dataloader:
+            x, y = x.to(device), y.to(device)
+            
+            if isinstance(model, dinv.models.DeepImagePrior):
                 x_hat = torch.cat([
                     model(y_i[None], self.physics) for y_i in y
                 ])
+            else:
+                x_hat = model(y)
+
+            if (self.dataset_name == 'FastMRI'):
+                transform = torchvision.transforms.Compose(
+                    [
+                        torchvision.transforms.CenterCrop(x.shape[-2:]),
+                        dinv.metric.functional.complex_abs,
+                    ]
+                )
+
+                CustomPSNR.transform = transform
+                
+                psnr.append(CustomPSNR()(x_hat, x))
+            else:
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
                 ssim.append(dinv.metric.SSIM()(x_hat, x))
-                if (self.dataset_name != 'FastMRI'):
-                    lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
+                lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
 
-            psnr = torch.mean(torch.cat(psnr)).item()
+        psnr = torch.mean(torch.cat(psnr)).item()
+
+        results = dict(PSNR=psnr)
+
+        if self.dataset_name != 'FastMRI':
             ssim = torch.mean(torch.cat(ssim)).item()
-
-            results = dict(PSNR=psnr, SSIM=ssim)
-
-            if self.dataset_name != 'FastMRI':
-                lpips = torch.mean(torch.cat(lpips)).item()
-                results['LPIPS'] = lpips
-        elif isinstance(model, (dinv.models.Denoiser,
+            lpips = torch.mean(torch.cat(lpips)).item()
+            results['SSIM'] = ssim
+            results['LPIPS'] = lpips
+        """elif isinstance(model, (dinv.models.Denoiser,
                                 dinv.models.Reconstructor)):
-            metrics = [dinv.metric.PSNR(), dinv.metric.SSIM()]
-
-            if self.dataset_name != 'FastMRI':
-                metrics.append(dinv.metric.LPIPS(device=device))
-                
-            if self.task_name == "MRI":
+            if (self.dataset_name == 'FastMRI'):
                 x, y = next(iter(test_dataloader))
 
                 transform = torchvision.transforms.Compose(
@@ -110,7 +122,14 @@ class Objective(BaseObjective):
                 )
 
                 CustomPSNR.transform = transform
+                
                 metrics = [CustomPSNR()]
+            else:
+                metrics = [
+                    dinv.metric.PSNR(),
+                    dinv.metric.SSIM(),
+                    dinv.metric.LPIPS(device=device)
+                ]
 
             results = dinv.test(
                 model,
@@ -142,14 +161,14 @@ class Objective(BaseObjective):
                 results['LPIPS'] = lpips
         else:
             raise ValueError(f"Model type {type(model)} not supported. "
-                              "Update the objective to support this model type.")
+                              "Update the objective to support this model type.")"""
 
         values = dict(
             value=results["PSNR"],
-            ssim=results["SSIM"],
         )
 
         if self.dataset_name != 'FastMRI':
+            values['ssim'] = results["SSIM"]
             values['lpips'] = results["LPIPS"]
 
         return values
@@ -166,4 +185,4 @@ class Objective(BaseObjective):
         # for `Solver.set_objective`. This defines the
         # benchmark's API for passing the objective to the solver.
         # It is customizable for each benchmark.
-        return dict(train_dataset=self.train_dataset, physics=self.physics, image_sizes=self.image_sizes)
+        return dict(train_dataset=self.train_dataset, physics=self.physics, image_size=self.image_size)
