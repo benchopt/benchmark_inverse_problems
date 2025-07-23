@@ -16,7 +16,7 @@ class Solver(BaseSolver):
 
     requirements = ["optuna"]
 
-    def set_objective(self, train_dataset, physics, image_size):
+    def set_objective(self, train_dataset, physics, image_size, dataset_name):
         self.train_dataset = train_dataset
         batch_size = 32
         self.train_dataloader = DataLoader(
@@ -39,6 +39,7 @@ class Solver(BaseSolver):
 
             for x, y in self.train_dataloader:
                 x, y = x.to(self.device), y.to(self.device)
+                
                 x_hat = torch.cat([
                     model(y_i[None], self.physics) for y_i in y
                 ])
