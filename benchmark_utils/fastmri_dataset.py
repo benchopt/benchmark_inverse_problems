@@ -30,6 +30,6 @@ class FastMRIDataset(Dataset):
 
         # We add an imaginary part of zeros
         x = torch.cat([x, torch.zeros_like(x)], dim=0)
-        y = y.reshape(8, y.shape[2], y.shape[3])
+        #y = y.reshape(8, y.shape[2], y.shape[3])
 
         return x, y

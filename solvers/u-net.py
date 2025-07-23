@@ -7,7 +7,7 @@ with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torchvision
     from benchmark_utils.metrics import CustomMSE, CustomPSNR
-    from benchmark_utils.custom_models import CustomUNet
+    from benchmark_utils.custom_models import MRIUNet
 
 
 class Solver(BaseSolver):
@@ -22,7 +22,7 @@ class Solver(BaseSolver):
 
     requirements = []
 
-    def set_objective(self, train_dataset, physics, image_size):
+    def set_objective(self, train_dataset, physics, image_size, dataset_name):
         batch_size = 1
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
@@ -32,15 +32,23 @@ class Solver(BaseSolver):
         )
         self.physics = physics.to(self.device)
         self.image_size = image_size
+        self.dataset_name = dataset_name
 
     def run(self, n_iter):
         epochs = 4
         
         x, y = next(iter(self.train_dataloader))
 
-        model = dinv.models.UNet(
-            in_channels=y.shape[1], out_channels=x.shape[1], scales=3, batch_norm=False
-        ).to(self.device)
+        if self.dataset_name == 'FastMRI':
+            model = MRIUNet(
+                in_channels=y.shape[1] * y.shape[2], out_channels=x.shape[1], scales=3,
+                batch_norm=False
+            ).to(self.device)
+        else:
+            model = dinv.models.UNet(
+                in_channels=y.shape[1], out_channels=x.shape[1], scales=3,
+                batch_norm=False
+            ).to(self.device)
 
         verbose = True  # print training information
         wandb_vis = False  # plot curves and images in Weight&Bias

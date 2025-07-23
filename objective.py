@@ -82,7 +82,7 @@ class Objective(BaseObjective):
                     model(y_i[None], self.physics) for y_i in y
                 ])
             else:
-                x_hat = model(y)
+                x_hat = model(y, self.physics)
 
             if (self.dataset_name == 'FastMRI'):
                 transform = torchvision.transforms.Compose(
@@ -185,4 +185,7 @@ class Objective(BaseObjective):
         # for `Solver.set_objective`. This defines the
         # benchmark's API for passing the objective to the solver.
         # It is customizable for each benchmark.
-        return dict(train_dataset=self.train_dataset, physics=self.physics, image_size=self.image_size)
+        return dict(train_dataset=self.train_dataset,
+                    physics=self.physics,
+                    image_size=self.image_size,
+                    dataset_name=self.dataset_name,)

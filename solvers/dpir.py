@@ -23,7 +23,7 @@ class Solver(BaseSolver):
 
     requirements = []
 
-    def set_objective(self, train_dataset, physics, image_size):
+    def set_objective(self, train_dataset, physics, image_size, dataset_name):
         batch_size = 2
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
@@ -33,6 +33,7 @@ class Solver(BaseSolver):
         )
         self.physics = physics
         self.image_size = image_size
+        self.dataset_name = dataset_name
 
     def run(self, n_iter):
         best_sigma = 0
@@ -50,25 +51,27 @@ class Solver(BaseSolver):
         for sigma in np.linspace(0.01, 0.1, 10):
             model = model_class(sigma=sigma, device=self.device)
             
+            psnr = []
+            
             for x, y in self.train_dataloader:
                 x, y = x.to(self.device), y.to(self.device)
 
-            x_hat = model(y)
-            
-            if (self.dataset_name == 'FastMRI'):
-                transform = torchvision.transforms.Compose(
-                    [
-                        torchvision.transforms.CenterCrop(x.shape[-2:]),
-                        dinv.metric.functional.complex_abs,
-                    ]
-                )
+                x_hat = model(y, self.physics)
 
-                CustomPSNR.transform = transform
-                
-                psnr.append(CustomPSNR()(x_hat, x))
-            else:
-                psnr.append(dinv.metric.PSNR()(x_hat, x))
-                
+                if (self.dataset_name == 'FastMRI'):
+                    transform = torchvision.transforms.Compose(
+                        [
+                            torchvision.transforms.CenterCrop(x.shape[-2:]),
+                            dinv.metric.functional.complex_abs,
+                        ]
+                    )
+
+                    CustomPSNR.transform = transform
+
+                    psnr.append(CustomPSNR()(x_hat, x))
+                else:
+                    psnr.append(dinv.metric.PSNR()(x_hat, x))
+
             psnr = torch.mean(torch.cat(psnr)).item()
 
             #results = dinv.test(
