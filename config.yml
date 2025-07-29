@@ -3,4 +3,5 @@ data_paths:
     generated_datasets: generated_datasets
     generated_trainings: generated_training
     BSD500: BSD500/BSR/BSDS500/data/images
-    fastmri: /data/parietal/store3/data/fastMRI-decompressed/
+    fastmri_train: /data/parietal/store3/data/fastMRI-multicoil/multicoil_train
+    fastmri_test: /data/parietal/store3/data/fastMRI-multicoil/multicoil_test
