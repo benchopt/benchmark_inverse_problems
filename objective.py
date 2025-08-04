@@ -8,7 +8,7 @@ with safe_import_context() as import_ctx:
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import torchvision
-    from benchmark_utils.metrics import CustomPSNR
+    from benchmark_utils.metrics import CustomPSNR, CustomSSIM, CustomLPIPS
 
 
 # The benchmark objective must be named `Objective` and
@@ -94,7 +94,29 @@ class Objective(BaseObjective):
 
                 CustomPSNR.transform = transform
                 
+                transform = torchvision.transforms.Compose(
+                    [
+                        torchvision.transforms.CenterCrop(x.shape[-2:]),
+                    ]
+                )
+                
+                CustomSSIM.transform = transform
+                
+                #transform = torchvision.transforms.Compose(
+                #    [
+                #        torchvision.transforms.CenterCrop(x.shape[-2:]),
+                #        dinv.metric.functional.complex_abs,
+                #    ]
+                #)
+                
+                #CustomLPIPS.transform = transform
+                
                 psnr.append(CustomPSNR()(x_hat, x))
+                #try:
+                #ssim.append(CustomSSIM()(x_hat, x))
+                #except Exception as e:
+                #    breakpoint()
+                #lpips.append(CustomLPIPS(device=device)(x_hat, x))
             else:
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
                 ssim.append(dinv.metric.SSIM()(x_hat, x))
@@ -109,6 +131,11 @@ class Objective(BaseObjective):
             lpips = torch.mean(torch.cat(lpips)).item()
             results['SSIM'] = ssim
             results['LPIPS'] = lpips
+        #else: # TO REMOVE
+            #ssim = torch.mean(torch.cat(ssim)).item()
+            #lpips = torch.mean(torch.cat(lpips)).item()
+            #results['SSIM'] = ssim
+            #results['LPIPS'] = lpips
         """elif isinstance(model, (dinv.models.Denoiser,
                                 dinv.models.Reconstructor)):
             if (self.dataset_name == 'FastMRI'):

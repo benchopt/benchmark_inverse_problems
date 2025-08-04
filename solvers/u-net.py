@@ -50,10 +50,6 @@ class Solver(BaseSolver):
                 batch_norm=False
             ).to(self.device)
 
-        verbose = True  # print training information
-        wandb_vis = False  # plot curves and images in Weight&Bias
-
-        # choose optimizer and scheduler
         optimizer = torch.optim.Adam(
             model.parameters(), lr=self.lr, weight_decay=1e-8
         )
@@ -61,36 +57,44 @@ class Solver(BaseSolver):
             optimizer, step_size=int(epochs * 0.8)
         )
 
-        transform = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.CenterCrop(x.shape[-2:]),
-                dinv.metric.functional.complex_abs,
-            ]
-        )
-
-        CustomMSE.transform = transform
-        CustomPSNR.transform = transform
-
         # choose training losses
-        losses = dinv.loss.SupLoss(metric=CustomMSE())
+        if self.dataset_name == 'FastMRI':
+            criterion = dinv.loss.SupLoss(metric=CustomMSE())
+        else:
+            criterion = dinv.loss.SupLoss(metric=dinv.metric.MSE())
         
-        trainer = dinv.Trainer(
-            model,
-            device=self.device,
-            verbose=verbose,
-            wandb_vis=wandb_vis,
-            physics=self.physics,
-            epochs=epochs,
-            scheduler=scheduler,
-            losses=losses,
-            metrics=CustomPSNR(),
-            optimizer=optimizer,
-            show_progress_bar=True,
-            train_dataloader=self.train_dataloader,
-        )
+        for epoch in range(epochs):
+            model.train()
+            running_loss = 0.0
+            
+            for x, y in self.train_dataloader:
+                x, y = x.to(self.device), y.to(self.device)
+                
+                x_hat = model(y, self.physics)
+                
+                if self.dataset_name == 'FastMRI':
+                    transform = torchvision.transforms.Compose(
+                        [
+                            torchvision.transforms.CenterCrop(x.shape[-2:]),
+                            dinv.metric.functional.complex_abs,
+                        ]
+                    )
+                    criterion.metric.transform = transform
+                loss = criterion(x_hat, x)
+                
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                scheduler.step()
+                
+                running_loss += loss.item()
 
-        self.model = trainer.train()
-        self.model.eval()
+            avg_loss = running_loss / len(self.train_dataloader)
+            print(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
+
+        model.eval()
+        
+        self.model = model
 
     def get_result(self):
         return dict(model=self.model, model_name="U-Net", device=self.device)
