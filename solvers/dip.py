@@ -18,7 +18,7 @@ class Solver(BaseSolver):
 
     def set_objective(self, train_dataset, physics, image_size, dataset_name):
         self.train_dataset = train_dataset
-        batch_size = 32
+        batch_size = 1
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
@@ -43,6 +43,7 @@ class Solver(BaseSolver):
                 x_hat = torch.cat([
                     model(y_i[None], self.physics) for y_i in y
                 ])
+                
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
 
             psnr = torch.mean(torch.cat(psnr)).item()
@@ -50,7 +51,7 @@ class Solver(BaseSolver):
             return psnr
 
         study = optuna.create_study(direction='maximize')
-        study.optimize(objective, n_trials=1)
+        study.optimize(objective, n_trials=3)
 
         best_trial = study.best_trial
         best_params = best_trial.params

@@ -8,7 +8,9 @@ with safe_import_context() as import_ctx:
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import torchvision
+    import torch.nn.functional as F
     from benchmark_utils.metrics import CustomPSNR, CustomSSIM, CustomLPIPS
+    from tqdm import tqdm
 
 
 # The benchmark objective must be named `Objective` and
@@ -74,7 +76,7 @@ class Objective(BaseObjective):
         ssim = []
         lpips = []
 
-        for x, y in test_dataloader:
+        for x, y in tqdm(test_dataloader, desc=f"Evaluating {model_name}"):
             x, y = x.to(device), y.to(device)
             
             if isinstance(model, dinv.models.DeepImagePrior):
@@ -82,6 +84,19 @@ class Objective(BaseObjective):
                     model(y_i[None], self.physics) for y_i in y
                 ])
             else:
+                if type(self.physics) is dinv.physics.blur.Downsampling and model_name == 'U-Net':
+                    _, _, x_h, x_w = x.shape
+                    _, _, y_h, y_w = y.shape
+
+                    diff_h = x_h - y_h
+                    diff_w = x_w - y_w
+                    
+                    pad_top = diff_h // 2
+                    pad_bottom = diff_h - pad_top
+                    pad_left = diff_w // 2
+                    pad_right = diff_w - pad_left
+                    
+                    y = F.pad(y, pad=(pad_left, pad_right, pad_top, pad_bottom), value=0)
                 x_hat = model(y, self.physics)
 
             if (self.dataset_name == 'FastMRI'):
@@ -212,6 +227,7 @@ class Objective(BaseObjective):
         # for `Solver.set_objective`. This defines the
         # benchmark's API for passing the objective to the solver.
         # It is customizable for each benchmark.
+        
         return dict(train_dataset=self.train_dataset,
                     physics=self.physics,
                     image_size=self.image_size,

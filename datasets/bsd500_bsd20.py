@@ -23,6 +23,7 @@ class Dataset(BaseDataset):
                  'gaussian-debluring',
                  'motion-debluring',
                  'SRx4',
+                 'inpainting',
                  'demosaicing'],
         'img_size': [256],
     }
@@ -38,7 +39,7 @@ class Dataset(BaseDataset):
         img_size = (n_channels, self.img_size, self.img_size)
 
         if self.task == "denoising":
-            noise_level_img = 0.03
+            noise_level_img = 0.1
             physics = Denoising(GaussianNoise(sigma=noise_level_img))
         elif self.task == "gaussian-debluring":
             filter_torch = dinv.physics.blur.gaussian_blur(sigma=(3, 3))
@@ -71,6 +72,10 @@ class Dataset(BaseDataset):
                                    filter="bicubic",
                                    factor=4,
                                    device=device)
+        elif self.task == "inpainting":
+            physics = dinv.physics.Inpainting(img_size,
+                                              mask=0.7,
+                                              device=device)
         elif self.task == "demosaicing":
             physics = Demosaicing(img_size=img_size,
                                   device=device)
@@ -84,32 +89,36 @@ class Dataset(BaseDataset):
 
         train_dataset = ImageDataset(
             config.get_data_path("BSD500") / "train",
+            physics,
+            device,
             transform=transform
         )
 
         test_dataset = ImageDataset(
             config.get_data_path("BSD500") / "val",
+            physics,
+            device,
             transform=transform,
             num_images=20
         )
 
-        dinv_dataset_path = dinv.datasets.generate_dataset(
-            train_dataset=train_dataset,
-            test_dataset=test_dataset,
-            physics=physics,
-            save_dir=config.get_data_path(
-                key="generated_datasets"
-            ) / "bsd500_bsd20",
-            dataset_filename=self.task,
-            device=device
-        )
+        #dinv_dataset_path = dinv.datasets.generate_dataset(
+        #    train_dataset=train_dataset,
+        #    test_dataset=test_dataset,
+        #    physics=physics,
+        #    save_dir=config.get_data_path(
+        #        key="generated_datasets"
+        #    ) / "bsd500_bsd20",
+        #    dataset_filename=self.task,
+        #    device=device
+        #)
 
-        train_dataset = dinv.datasets.HDF5Dataset(
-            path=dinv_dataset_path, train=True
-        )
-        test_dataset = dinv.datasets.HDF5Dataset(
-            path=dinv_dataset_path, train=False
-        )
+        #train_dataset = dinv.datasets.HDF5Dataset(
+        #    path=dinv_dataset_path, train=True
+        #)
+        #test_dataset = dinv.datasets.HDF5Dataset(
+        #    path=dinv_dataset_path, train=False
+        #)
 
         x, y = train_dataset[0]
         dinv.utils.plot([x.unsqueeze(0), y.unsqueeze(0)])

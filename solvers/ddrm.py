@@ -16,7 +16,7 @@ class Solver(BaseSolver):
 
     requirements = []
 
-    def set_objective(self, train_dataset, physics):
+    def set_objective(self, train_dataset, physics, image_size):
         batch_size = 2
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
@@ -43,3 +43,6 @@ class Solver(BaseSolver):
 
     def get_result(self):
         return dict(model=self.model, model_name="DiffPIR", device=self.device)
+    
+    def skip(self, train_dataset, physics, image_size, dataset_name):
+        return True, "Not yet implemented."

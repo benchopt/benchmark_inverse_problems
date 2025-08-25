@@ -2,6 +2,6 @@ data_home: /home/mind/mnargeot/benchmarks/benchmark_inverse_problems/data_tmp
 data_paths:
     generated_datasets: generated_datasets
     generated_trainings: generated_training
-    BSD500: BSD500/BSR/BSDS500/data/images
+    BSD500: /data/parietal/store3/data/BSD500
     fastmri_train: /data/parietal/store3/data/fastMRI-multicoil/multicoil_train
     fastmri_test: /data/parietal/store3/data/fastMRI-multicoil/multicoil_val

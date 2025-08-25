@@ -3,11 +3,13 @@ from benchopt import BaseSolver, safe_import_context
 
 with safe_import_context() as import_ctx:
     import torch
+    import torch.nn.functional as F
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import torchvision
     from benchmark_utils.metrics import CustomMSE, CustomPSNR
     from benchmark_utils.custom_models import MRIUNet
+    import matplotlib.pyplot as plt
 
 
 class Solver(BaseSolver):
@@ -70,8 +72,23 @@ class Solver(BaseSolver):
             for x, y in self.train_dataloader:
                 x, y = x.to(self.device), y.to(self.device)
                 
-                x_hat = model(y, self.physics)
+                if type(self.physics) is dinv.physics.blur.Downsampling:
+                    _, _, x_h, x_w = x.shape
+                    _, _, y_h, y_w = y.shape
+
+                    diff_h = x_h - y_h
+                    diff_w = x_w - y_w
+                    
+                    pad_top = diff_h // 2
+                    pad_bottom = diff_h - pad_top
+                    pad_left = diff_w // 2
+                    pad_right = diff_w - pad_left
+                    
+                    y = F.pad(y, pad=(pad_left, pad_right, pad_top, pad_bottom), value=0)
                 
+                x_hat = model(y, self.physics)
+                    
+
                 if self.dataset_name == 'FastMRI':
                     transform = torchvision.transforms.Compose(
                         [
@@ -80,6 +97,10 @@ class Solver(BaseSolver):
                         ]
                     )
                     criterion.metric.transform = transform
+                
+                #if type(self.physics) is dinv.physics.blur.Downsampling:
+                    #breakpoint()
+
                 loss = criterion(x_hat, x)
                 
                 optimizer.zero_grad()
@@ -98,3 +119,4 @@ class Solver(BaseSolver):
 
     def get_result(self):
         return dict(model=self.model, model_name="U-Net", device=self.device)
+

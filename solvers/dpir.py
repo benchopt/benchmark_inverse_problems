@@ -13,6 +13,7 @@ with safe_import_context() as import_ctx:
     from deepinv.optim.dpir import get_DPIR_params
     from benchmark_utils.denoiser_2c import Denoiser_2c
     from benchmark_utils.metrics import CustomPSNR
+    from tqdm import tqdm
 
 class Solver(BaseSolver):
     name = 'DPIR'
@@ -52,8 +53,8 @@ class Solver(BaseSolver):
             model = model_class(sigma=sigma, device=self.device)
             
             psnr = []
-            
-            for x, y in self.train_dataloader:
+
+            for x, y in tqdm(self.train_dataloader, desc=f"DPIR : Looking for the best sigma"):
                 x, y = x.to(self.device), y.to(self.device)
 
                 x_hat = model(y, self.physics)
