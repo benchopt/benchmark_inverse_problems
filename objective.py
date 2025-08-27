@@ -11,6 +11,7 @@ with safe_import_context() as import_ctx:
     import torch.nn.functional as F
     from benchmark_utils.metrics import CustomPSNR, CustomSSIM, CustomLPIPS
     from tqdm import tqdm
+    import time
 
 
 # The benchmark objective must be named `Objective` and
@@ -75,14 +76,18 @@ class Objective(BaseObjective):
         psnr = []
         ssim = []
         lpips = []
+        times = []
 
         for x, y in tqdm(test_dataloader, desc=f"Evaluating {model_name}"):
             x, y = x.to(device), y.to(device)
             
             if isinstance(model, dinv.models.DeepImagePrior):
-                x_hat = torch.cat([
+                start = time.time()
+                x_hat = [
                     model(y_i[None], self.physics) for y_i in y
-                ])
+                ]
+                exec_time = time.time() - start
+                x_hat = torch.cat(x_hat)
             else:
                 if type(self.physics) is dinv.physics.blur.Downsampling and model_name == 'U-Net':
                     _, _, x_h, x_w = x.shape
@@ -97,7 +102,12 @@ class Objective(BaseObjective):
                     pad_right = diff_w - pad_left
                     
                     y = F.pad(y, pad=(pad_left, pad_right, pad_top, pad_bottom), value=0)
+                    
+                start = time.time()
                 x_hat = model(y, self.physics)
+                exec_time = time.time() - start
+
+            times.append(exec_time)
 
             if (self.dataset_name == 'FastMRI'):
                 transform = torchvision.transforms.Compose(
@@ -138,6 +148,7 @@ class Objective(BaseObjective):
                 lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
 
         psnr = torch.mean(torch.cat(psnr)).item()
+        times = torch.mean(torch.tensor(times)).item()
 
         results = dict(PSNR=psnr)
 
@@ -146,6 +157,8 @@ class Objective(BaseObjective):
             lpips = torch.mean(torch.cat(lpips)).item()
             results['SSIM'] = ssim
             results['LPIPS'] = lpips
+            
+        results['Time'] = times
         #else: # TO REMOVE
             #ssim = torch.mean(torch.cat(ssim)).item()
             #lpips = torch.mean(torch.cat(lpips)).item()
@@ -212,6 +225,8 @@ class Objective(BaseObjective):
         if self.dataset_name != 'FastMRI':
             values['ssim'] = results["SSIM"]
             values['lpips'] = results["LPIPS"]
+
+        values['time'] = results["Time"]
 
         return values
 
