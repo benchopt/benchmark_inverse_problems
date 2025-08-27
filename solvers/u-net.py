@@ -9,7 +9,6 @@ with safe_import_context() as import_ctx:
     import torchvision
     from benchmark_utils.metrics import CustomMSE, CustomPSNR
     from benchmark_utils.custom_models import MRIUNet
-    import matplotlib.pyplot as plt
 
 
 class Solver(BaseSolver):
@@ -48,7 +47,7 @@ class Solver(BaseSolver):
             ).to(self.device)
         else:
             model = dinv.models.UNet(
-                in_channels=y.shape[1], out_channels=x.shape[1], scales=3,
+                in_channels=y.shape[1], out_channels=x.shape[1], scales=4,
                 batch_norm=False
             ).to(self.device)
 
@@ -56,7 +55,7 @@ class Solver(BaseSolver):
             model.parameters(), lr=self.lr, weight_decay=1e-8
         )
         scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer, step_size=int(epochs * 0.8)
+            optimizer, step_size=int(epochs * 0.7)
         )
 
         # choose training losses
@@ -88,7 +87,6 @@ class Solver(BaseSolver):
                 
                 x_hat = model(y, self.physics)
                     
-
                 if self.dataset_name == 'FastMRI':
                     transform = torchvision.transforms.Compose(
                         [
@@ -106,17 +104,18 @@ class Solver(BaseSolver):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                scheduler.step()
                 
                 running_loss += loss.item()
 
             avg_loss = running_loss / len(self.train_dataloader)
             print(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
+            
+            scheduler.step()
 
         model.eval()
         
         self.model = model
 
     def get_result(self):
-        return dict(model=self.model, model_name="U-Net", device=self.device)
+        return dict(model=self.model, model_name=f"U-Net_{self.lr}", device=self.device)
 
