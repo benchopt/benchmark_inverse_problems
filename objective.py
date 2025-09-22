@@ -127,21 +127,7 @@ class Objective(BaseObjective):
                 
                 CustomSSIM.transform = transform
                 
-                #transform = torchvision.transforms.Compose(
-                #    [
-                #        torchvision.transforms.CenterCrop(x.shape[-2:]),
-                #        dinv.metric.functional.complex_abs,
-                #    ]
-                #)
-                
-                #CustomLPIPS.transform = transform
-                
                 psnr.append(CustomPSNR()(x_hat, x))
-                #try:
-                #ssim.append(CustomSSIM()(x_hat, x))
-                #except Exception as e:
-                #    breakpoint()
-                #lpips.append(CustomLPIPS(device=device)(x_hat, x))
             else:
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
                 ssim.append(dinv.metric.SSIM()(x_hat, x))
@@ -157,66 +143,8 @@ class Objective(BaseObjective):
             lpips = torch.mean(torch.cat(lpips)).item()
             results['SSIM'] = ssim
             results['LPIPS'] = lpips
-            
+
         results['Time'] = times
-        #else: # TO REMOVE
-            #ssim = torch.mean(torch.cat(ssim)).item()
-            #lpips = torch.mean(torch.cat(lpips)).item()
-            #results['SSIM'] = ssim
-            #results['LPIPS'] = lpips
-        """elif isinstance(model, (dinv.models.Denoiser,
-                                dinv.models.Reconstructor)):
-            if (self.dataset_name == 'FastMRI'):
-                x, y = next(iter(test_dataloader))
-
-                transform = torchvision.transforms.Compose(
-                    [
-                        torchvision.transforms.CenterCrop(x.shape[-2:]),
-                        dinv.metric.functional.complex_abs,
-                    ]
-                )
-
-                CustomPSNR.transform = transform
-                
-                metrics = [CustomPSNR()]
-            else:
-                metrics = [
-                    dinv.metric.PSNR(),
-                    dinv.metric.SSIM(),
-                    dinv.metric.LPIPS(device=device)
-                ]
-
-            results = dinv.test(
-                model,
-                test_dataloader,
-                self.physics,
-                metrics=metrics,
-                device=device,
-            )
-        elif callable(model):
-            psnr = []
-            ssim = []
-            lpips = []
-
-            for x, y in test_dataloader:
-                x, y = x.to(device), y.to(device)
-                x_hat = model(y)
-                psnr.append(dinv.metric.PSNR()(x_hat, x))
-                ssim.append(dinv.metric.SSIM()(x_hat, x))
-                if (self.dataset_name != 'FastMRI'):
-                    lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
-
-            psnr = torch.mean(torch.cat(psnr)).item()
-            ssim = torch.mean(torch.cat(ssim)).item()
-
-            results = dict(PSNR=psnr, SSIM=ssim)
-
-            if self.dataset_name != 'FastMRI':
-                lpips = torch.mean(torch.cat(lpips)).item()
-                results['LPIPS'] = lpips
-        else:
-            raise ValueError(f"Model type {type(model)} not supported. "
-                              "Update the objective to support this model type.")"""
 
         values = dict(
             value=results["PSNR"],

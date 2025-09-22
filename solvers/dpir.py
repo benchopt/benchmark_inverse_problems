@@ -39,7 +39,6 @@ class Solver(BaseSolver):
     def run(self, n_iter):
         best_sigma = 0
         best_psnr = 0
-        lr = 0.001
         
         # If the number of channels is 2 we use a custom DPIR solver
         if self.image_size[0] == 2:
@@ -74,14 +73,6 @@ class Solver(BaseSolver):
                     psnr.append(dinv.metric.PSNR()(x_hat, x))
 
             psnr = torch.mean(torch.cat(psnr)).item()
-
-            #results = dinv.test(
-            #    model,
-            #    self.train_dataloader,
-            #    self.physics,
-            #    metrics=[dinv.metric.PSNR(), dinv.metric.SSIM()],
-            #    device=self.device
-            #)
 
             if psnr > best_psnr:
                 best_sigma = sigma

@@ -30,7 +30,7 @@ class Solver(BaseSolver):
 
     def run(self, n_iter):
         def model(y, physics):
-            return physics.A_adjoint(y)
+            return physics.A_dagger(y)
 
         self.model = model
 
