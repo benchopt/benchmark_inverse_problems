@@ -14,7 +14,7 @@ class Solver(BaseSolver):
 
     sampling_strategy = 'run_once'
 
-    requirements = ["pip:optuna"]
+    requirements = ["pip::optuna"]
 
     def set_objective(self, train_dataset, physics):
         self.train_dataset = train_dataset
