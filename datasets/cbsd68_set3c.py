@@ -1,4 +1,6 @@
 from benchopt import BaseDataset, safe_import_context, config
+import os
+from pathlib import Path
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
@@ -87,13 +89,14 @@ class Dataset(BaseDataset):
             dataset_Set3c["train"], key="image", transform=transform
         )
 
+        data_path = Path(os.path.dirname(os.path.abspath(__file__)))
+        data_path = data_path.parent / "data"
+
         dinv_dataset_path = dinv.datasets.generate_dataset(
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
-            save_dir=config.get_data_path(
-                key="generated_datasets"
-            ) / "sbsd68_set3c",
+            save_dir=data_path / "sbsd68_set3c",
             dataset_filename=self.task,
             device=device
         )

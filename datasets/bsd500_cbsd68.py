@@ -1,4 +1,6 @@
 from benchopt import BaseDataset, safe_import_context, config
+from pathlib import Path
+import os
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
@@ -11,6 +13,7 @@ with safe_import_context() as import_ctx:
     )
     from deepinv.physics import Denoising, GaussianNoise, Downsampling
     from deepinv.physics.generator import MotionBlurGenerator
+    import kagglehub
 
 
 class Dataset(BaseDataset):
@@ -77,8 +80,13 @@ class Dataset(BaseDataset):
             transforms.ToTensor()
         ])
 
+        path = Path(kagglehub.dataset_download(
+            "balraj98/berkeley-segmentation-dataset-500-bsds500"))
+        path = path / "images"
+
         train_dataset = ImageDataset(
-            config.get_data_path("BSD500") / "train", transform=transform
+            path / "train",
+            transform=transform
         )
 
         dataset_cbsd68 = load_dataset("deepinv/CBSD68")
@@ -86,13 +94,14 @@ class Dataset(BaseDataset):
             dataset_cbsd68["train"], key="png", transform=transform
         )
 
+        data_path = Path(os.path.dirname(os.path.abspath(__file__)))
+        data_path = data_path.parent / "data"
+
         dinv_dataset_path = dinv.datasets.generate_dataset(
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
-            save_dir=config.get_data_path(
-                key="generated_datasets"
-            ) / "bsd500_cbsd68",
+            save_dir=data_path / "bsd500_cbsd68",
             dataset_filename=self.task,
             device=device
         )
