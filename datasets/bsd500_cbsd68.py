@@ -28,7 +28,7 @@ class Dataset(BaseDataset):
         'img_size': [256],
     }
 
-    requirements = ["datasets"]
+    requirements = ["datasets", "kagglehub"]
 
     def get_data(self):
         # TODO: Remove

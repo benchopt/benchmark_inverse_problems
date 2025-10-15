@@ -28,7 +28,7 @@ class Dataset(BaseDataset):
         'img_size': [256],
     }
 
-    requirements = ["datasets"]
+    requirements = ["datasets", "kagglehub"]
 
     def get_data(self):
         # TODO: Remove
@@ -82,6 +82,7 @@ class Dataset(BaseDataset):
 
         path = Path(kagglehub.dataset_download(
             "balraj98/berkeley-segmentation-dataset-500-bsds500"))
+        path = path / "images"
 
         train_dataset = ImageDataset(
             path / "train",
