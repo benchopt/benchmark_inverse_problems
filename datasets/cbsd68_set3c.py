@@ -1,4 +1,4 @@
-from benchopt import BaseDataset, safe_import_context, config
+from benchopt import BaseDataset, safe_import_context
 import os
 from pathlib import Path
 
