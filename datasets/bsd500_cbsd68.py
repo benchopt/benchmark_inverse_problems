@@ -1,19 +1,16 @@
 from benchopt import BaseDataset, safe_import_context
-from pathlib import Path
-import os
+from benchopt.config import get_data_path
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch
     from torchvision import transforms
     from datasets import load_dataset
-    from benchmark_utils.image_dataset import ImageDataset
     from benchmark_utils.hugging_face_torch_dataset import (
         HuggingFaceTorchDataset
     )
     from deepinv.physics import Denoising, GaussianNoise, Downsampling
     from deepinv.physics.generator import MotionBlurGenerator
-    import kagglehub
 
 
 class Dataset(BaseDataset):
@@ -28,7 +25,7 @@ class Dataset(BaseDataset):
         'img_size': [256],
     }
 
-    requirements = ["datasets", "kagglehub"]
+    requirements = ["datasets"]
 
     def get_data(self):
         # TODO: Remove
@@ -80,13 +77,9 @@ class Dataset(BaseDataset):
             transforms.ToTensor()
         ])
 
-        path = Path(kagglehub.dataset_download(
-            "balraj98/berkeley-segmentation-dataset-500-bsds500"))
-        path = path / "images"
-
-        train_dataset = ImageDataset(
-            path / "train",
-            transform=transform
+        path = get_data_path("BSD500")
+        train_dataset = dinv.datasets.BSDS500(
+            path, download=True, splits='train', transform=transform
         )
 
         dataset_cbsd68 = load_dataset("deepinv/CBSD68")
@@ -94,14 +87,11 @@ class Dataset(BaseDataset):
             dataset_cbsd68["train"], key="png", transform=transform
         )
 
-        data_path = Path(os.path.dirname(os.path.abspath(__file__)))
-        data_path = data_path.parent / "data"
-
         dinv_dataset_path = dinv.datasets.generate_dataset(
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
-            save_dir=data_path / "bsd500_cbsd68",
+            save_dir=get_data_path("bsd500_cbsd68"),
             dataset_filename=self.task,
             device=device
         )
