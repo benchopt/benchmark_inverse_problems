@@ -13,7 +13,7 @@ def check_test_solver_install(solver_class):
     pass
 
 
-def check_test_dataset_get_data(dataset_class):
+def check_test_dataset_get_data(benchmark, dataset_class):
     if sys.platform == "darwin":
         pytest.skip(
             "Skipping test_dataset_get_data on MacOS."
