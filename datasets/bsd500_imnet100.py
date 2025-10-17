@@ -79,7 +79,7 @@ class Dataset(BaseDataset):
 
         path = get_data_path("BSD500")
         train_dataset = dinv.datasets.BSDS500(
-            path, download=True, splits='train', transform=transform
+            path, download=True, transform=transform
         )
 
         dataset_miniImnet100 = load_dataset("mterris/miniImnet100")
