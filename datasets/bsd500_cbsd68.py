@@ -1,11 +1,11 @@
-from benchopt import BaseDataset, safe_import_context, config
+from benchopt import BaseDataset, safe_import_context
+from benchopt.config import get_data_path
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch
     from torchvision import transforms
     from datasets import load_dataset
-    from benchmark_utils.image_dataset import ImageDataset
     from benchmark_utils.hugging_face_torch_dataset import (
         HuggingFaceTorchDataset
     )
@@ -77,8 +77,9 @@ class Dataset(BaseDataset):
             transforms.ToTensor()
         ])
 
-        train_dataset = ImageDataset(
-            config.get_data_path("BSD500") / "train", transform=transform
+        path = get_data_path("BSD500")
+        train_dataset = dinv.datasets.BSDS500(
+            path, download=True, transform=transform
         )
 
         dataset_cbsd68 = load_dataset("deepinv/CBSD68")
@@ -90,9 +91,7 @@ class Dataset(BaseDataset):
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
-            save_dir=config.get_data_path(
-                key="generated_datasets"
-            ) / "bsd500_cbsd68",
+            save_dir=get_data_path("bsd500_cbsd68"),
             dataset_filename=self.task,
             device=device
         )

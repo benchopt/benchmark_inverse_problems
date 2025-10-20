@@ -1,10 +1,10 @@
-from benchopt import BaseDataset, safe_import_context, config
+from benchopt import BaseDataset, safe_import_context
+from benchopt.config import get_data_path
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch
     from torchvision import transforms
-    from benchmark_utils.image_dataset import ImageDataset
     from benchmark_utils.hugging_face_torch_dataset import (
         HuggingFaceTorchDataset
     )
@@ -77,9 +77,9 @@ class Dataset(BaseDataset):
             transforms.ToTensor()
         ])
 
-        train_dataset = ImageDataset(
-            config.get_data_path("BSD500") / "train",
-            transform=transform
+        path = get_data_path("BSD500")
+        train_dataset = dinv.datasets.BSDS500(
+            path, download=True, transform=transform
         )
 
         dataset_miniImnet100 = load_dataset("mterris/miniImnet100")
@@ -93,9 +93,7 @@ class Dataset(BaseDataset):
             train_dataset=train_dataset,
             test_dataset=test_dataset,
             physics=physics,
-            save_dir=config.get_data_path(
-                key="generated_datasets"
-            ) / "bsd500_imnet100",
+            save_dir=get_data_path("bsd500_imnet100"),
             dataset_filename=self.task,
             device=device
         )
