@@ -18,3 +18,4 @@ benchopt.ini
 coverage.xml
 
 tmp
+data/

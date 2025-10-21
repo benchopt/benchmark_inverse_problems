@@ -90,8 +90,15 @@ class Dataset(BaseDataset):
         ])
 
         path = get_data_path("BSD500")
-        train_dataset = dinv.datasets.BSDS500(
+        bsd500_dataset = dinv.datasets.BSDS500(
             path, download=True, transform=transform
+        )
+        train_dataset = HuggingFaceTorchDataset(
+            bsd500_dataset,
+            key=...,
+            physics=physics,
+            device=device,
+            transform=transforms.Resize((self.img_size, self.img_size))
         )
 
         dataset_miniImnet100 = load_dataset("mterris/miniImnet100")

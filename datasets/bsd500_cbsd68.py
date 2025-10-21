@@ -90,8 +90,15 @@ class Dataset(BaseDataset):
         ])
 
         path = get_data_path("BSD500")
-        train_dataset = dinv.datasets.BSDS500(
+        bsd500_dataset = dinv.datasets.BSDS500(
             path, download=True, transform=transform
+        )
+        train_dataset = HuggingFaceTorchDataset(
+            bsd500_dataset,
+            key=...,
+            physics=physics,
+            device=device,
+            transform=transforms.Resize((self.img_size, self.img_size))
         )
 
         dataset_cbsd68 = load_dataset("deepinv/CBSD68")
@@ -99,8 +106,6 @@ class Dataset(BaseDataset):
             dataset_cbsd68["train"],
             key="png",
             physics=physics,
-            save_dir=get_data_path("bsd500_cbsd68"),
-            dataset_filename=self.task,
             device=device
         )
 
