@@ -2,8 +2,7 @@ from benchopt import BaseDataset, safe_import_context, config
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
-    import torch, torchvision
-    from torch.utils.data import DataLoader
+    import torch
     from benchmark_utils.fastmri_dataset import FastMRIDataset
 
 MAX_COILS = 32  # Maximum number of coils to pad to
