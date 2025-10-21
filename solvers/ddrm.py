@@ -29,7 +29,7 @@ class Solver(BaseSolver):
     def run(self, n_iter):
         denoiser = dinv.models.DRUNet(pretrained="download").to(self.device)
 
-        sigmas = (np.linspace(1,0, 100)
+        sigmas = (np.linspace(1, 0, 100)
                   if torch.cuda.is_available()
                   else np.linspace(1, 0, 10))
 

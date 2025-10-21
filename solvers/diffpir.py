@@ -32,7 +32,10 @@ class Solver(BaseSolver):
         if self.image_size[0] == 2:
             denoiser = Denoiser_2c(device=self.device)
         else:
-            denoiser = dinv.models.DRUNet(pretrained="download").to(self.device)
+            denoiser = dinv.models.DRUNet(
+                pretrained="download",
+                device=self.device
+            )
 
         self.model = dinv.sampling.DiffPIR(
             model=denoiser,

@@ -54,7 +54,11 @@ class Solver(BaseSolver):
 
             psnr = []
 
-            for x, y in tqdm(self.train_dataloader, desc=f"DPIR : Looking for the best sigma"):
+            bar = tqdm(
+                self.train_dataloader,
+                desc="DPIR : Looking for the best sigma"
+            )
+            for x, y in bar:
                 x, y = x.to(self.device), y.to(self.device)
 
                 x_hat = model(y, self.physics)

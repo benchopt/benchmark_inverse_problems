@@ -4,7 +4,6 @@ with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
-    import numpy as np
 
 
 class Solver(BaseSolver):
@@ -38,7 +37,10 @@ class Solver(BaseSolver):
         return dict(model=self.model, model_name="IFFT2", device=self.device)
 
     def skip(self, **objective_dict):
-        if isinstance(objective_dict['physics'], dinv.physics.mri.MultiCoilMRI):
+        if isinstance(
+            objective_dict['physics'],
+            dinv.physics.mri.MultiCoilMRI
+        ):
             return False, None
 
         return True, "This solver is only available for MRI dataset"
