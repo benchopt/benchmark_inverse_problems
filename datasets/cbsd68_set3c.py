@@ -1,4 +1,4 @@
-from benchopt import BaseDataset, safe_import_context, config
+from benchopt import BaseDataset, safe_import_context
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
@@ -106,32 +106,6 @@ class Dataset(BaseDataset):
             device=device,
             transform=transform
         )
-
-        #dinv_dataset_path = dinv.datasets.generate_dataset(
-        #    train_dataset=train_dataset,
-        #    test_dataset=test_dataset,
-        #    physics=physics,
-        #    save_dir=config.get_data_path(
-        #        key="generated_datasets"
-        #    ) / "sbsd68_set3c",
-        #    dataset_filename=self.task,
-        #    device=device
-        #)
-
-        #train_dataset = dinv.datasets.HDF5Dataset(
-        #    path=dinv_dataset_path,
-        #    train=True
-        #)
-        #test_dataset = dinv.datasets.HDF5Dataset(
-        #    path=dinv_dataset_path,
-        #    train=False
-        #)
-
-        x, y = train_dataset[0]
-        dinv.utils.plot([x.unsqueeze(0), y.unsqueeze(0)])
-
-        x, y = test_dataset[0]
-        dinv.utils.plot([x.unsqueeze(0), y.unsqueeze(0)])
 
         return dict(
             train_dataset=train_dataset,

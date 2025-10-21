@@ -39,11 +39,11 @@ class Solver(BaseSolver):
 
             for x, y in self.train_dataloader:
                 x, y = x.to(self.device), y.to(self.device)
-                
+
                 x_hat = torch.cat([
                     model(y_i[None], self.physics) for y_i in y
                 ])
-                
+
                 psnr.append(dinv.metric.PSNR()(x_hat, x))
 
             psnr = torch.mean(torch.cat(psnr)).item()

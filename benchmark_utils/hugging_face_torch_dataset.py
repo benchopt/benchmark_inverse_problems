@@ -18,7 +18,7 @@ class HuggingFaceTorchDataset(torch.utils.data.Dataset):
 
         if self.transform:
             x = self.transform(x)
-        
+
         x = x.to(self.device)
 
         y = self.physics(x.unsqueeze(0))

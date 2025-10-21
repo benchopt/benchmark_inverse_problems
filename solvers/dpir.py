@@ -15,6 +15,7 @@ with safe_import_context() as import_ctx:
     from benchmark_utils.metrics import CustomPSNR
     from tqdm import tqdm
 
+
 class Solver(BaseSolver):
     name = 'DPIR'
 
@@ -39,7 +40,7 @@ class Solver(BaseSolver):
     def run(self, n_iter):
         best_sigma = 0
         best_psnr = 0
-        
+
         # If the number of channels is 2 we use a custom DPIR solver
         if self.image_size[0] == 2:
             model_class = DPIR_2C
@@ -50,7 +51,7 @@ class Solver(BaseSolver):
         # then we can't use pretrained DRUNet
         for sigma in np.linspace(0.01, 0.1, 10):
             model = model_class(sigma=sigma, device=self.device)
-            
+
             psnr = []
 
             for x, y in tqdm(self.train_dataloader, desc=f"DPIR : Looking for the best sigma"):

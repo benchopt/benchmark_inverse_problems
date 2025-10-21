@@ -40,5 +40,5 @@ class Solver(BaseSolver):
     def skip(self, **objective_dict):
         if isinstance(objective_dict['physics'], dinv.physics.mri.MultiCoilMRI):
             return False, None
-        
+
         return True, "This solver is only available for MRI dataset"
