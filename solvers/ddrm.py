@@ -4,11 +4,11 @@ with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
-    from benchmark_utils.denoiser_2c import Denoiser_2c
+    import numpy as np
 
 
 class Solver(BaseSolver):
-    name = 'DiffPIR'
+    name = 'DDRM'
 
     parameters = {}
 
@@ -16,7 +16,7 @@ class Solver(BaseSolver):
 
     requirements = []
 
-    def set_objective(self, train_dataset, physics, image_size, dataset_name):
+    def set_objective(self, train_dataset, physics, image_size):
         batch_size = 2
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
@@ -26,24 +26,23 @@ class Solver(BaseSolver):
         )
         self.physics = physics
 
-        self.image_size = image_size
-
     def run(self, n_iter):
-        if self.image_size[0] == 2:
-            denoiser = Denoiser_2c(device=self.device)
-        else:
-            denoiser = dinv.models.DRUNet(
-                pretrained="download",
-                device=self.device
-            )
+        denoiser = dinv.models.DRUNet(pretrained="download").to(self.device)
 
-        self.model = dinv.sampling.DiffPIR(
-            model=denoiser,
-            data_fidelity=dinv.optim.data_fidelity.L2(),
-            device=self.device
+        sigmas = (np.linspace(1, 0, 100)
+                  if torch.cuda.is_available()
+                  else np.linspace(1, 0, 10))
+
+        self.model = dinv.sampling.DDRM(
+            denoiser=denoiser,
+            etab=1.0,
+            sigmas=sigmas,
+            verbose=True
         )
-
         self.model.eval()
 
     def get_result(self):
         return dict(model=self.model, model_name="DiffPIR", device=self.device)
+
+    def skip(self, train_dataset, physics, image_size, dataset_name):
+        return True, "Not yet implemented."

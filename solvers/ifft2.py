@@ -4,11 +4,10 @@ with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
-    from benchmark_utils.denoiser_2c import Denoiser_2c
 
 
 class Solver(BaseSolver):
-    name = 'DiffPIR'
+    name = 'IFFT2'
 
     parameters = {}
 
@@ -25,25 +24,23 @@ class Solver(BaseSolver):
             dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
         )
         self.physics = physics
-
         self.image_size = image_size
+        self.dataset_name = dataset_name
 
     def run(self, n_iter):
-        if self.image_size[0] == 2:
-            denoiser = Denoiser_2c(device=self.device)
-        else:
-            denoiser = dinv.models.DRUNet(
-                pretrained="download",
-                device=self.device
-            )
+        def model(y, physics):
+            return physics.A_dagger(y)
 
-        self.model = dinv.sampling.DiffPIR(
-            model=denoiser,
-            data_fidelity=dinv.optim.data_fidelity.L2(),
-            device=self.device
-        )
-
-        self.model.eval()
+        self.model = model
 
     def get_result(self):
-        return dict(model=self.model, model_name="DiffPIR", device=self.device)
+        return dict(model=self.model, model_name="IFFT2", device=self.device)
+
+    def skip(self, **objective_dict):
+        if isinstance(
+            objective_dict['physics'],
+            dinv.physics.mri.MultiCoilMRI
+        ):
+            return False, None
+
+        return True, "This solver is only available for MRI dataset"
