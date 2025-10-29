@@ -23,12 +23,14 @@ class Dataset(BaseDataset):
     name = "BSD500_imnet100"
 
     parameters = {
-        'task': ['denoising',
-                 'gaussian-debluring',
-                 'motion-debluring',
-                 'SRx4',
-                 'inpainting',
-                 'demosaicing'],
+        'task': [
+            'denoising',
+            'gaussian-debluring',
+            'motion-debluring',
+            'SRx4',
+            'inpainting',
+            'demosaicing'
+        ],
         'img_size': [256],
     }
 

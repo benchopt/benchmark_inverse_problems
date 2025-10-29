@@ -6,9 +6,6 @@ with safe_import_context() as import_ctx:
     import torch.nn.functional as F
     from torch.utils.data import DataLoader
     import deepinv as dinv
-    import torchvision
-    from benchmark_utils.metrics import CustomMSE
-    from benchmark_utils.custom_models import MRIUNet
 
 
 class Solver(BaseSolver):
@@ -40,18 +37,10 @@ class Solver(BaseSolver):
 
         x, y = next(iter(self.train_dataloader))
 
-        if self.dataset_name == 'FastMRI':
-            model = MRIUNet(
-                in_channels=y.shape[1] * y.shape[2],
-                out_channels=x.shape[1],
-                scales=3,
-                batch_norm=False
-            ).to(self.device)
-        else:
-            model = dinv.models.UNet(
-                in_channels=y.shape[1], out_channels=x.shape[1], scales=4,
-                batch_norm=False
-            ).to(self.device)
+        model = dinv.models.UNet(
+            in_channels=y.shape[1], out_channels=x.shape[1], scales=4,
+            batch_norm=False
+        ).to(self.device)
 
         optimizer = torch.optim.Adam(
             model.parameters(), lr=self.lr, weight_decay=1e-8
@@ -60,11 +49,7 @@ class Solver(BaseSolver):
             optimizer, step_size=int(epochs * 0.7)
         )
 
-        # choose training losses
-        if self.dataset_name == 'FastMRI':
-            criterion = dinv.loss.SupLoss(metric=CustomMSE())
-        else:
-            criterion = dinv.loss.SupLoss(metric=dinv.metric.MSE())
+        criterion = dinv.loss.SupLoss(metric=dinv.metric.MSE())
 
         for epoch in range(epochs):
             model.train()
@@ -92,15 +77,6 @@ class Solver(BaseSolver):
                     )
 
                 x_hat = model(y, self.physics)
-
-                if self.dataset_name == 'FastMRI':
-                    transform = torchvision.transforms.Compose(
-                        [
-                            torchvision.transforms.CenterCrop(x.shape[-2:]),
-                            dinv.metric.functional.complex_abs,
-                        ]
-                    )
-                    criterion.metric.transform = transform
 
                 loss = criterion(x_hat, x)
 

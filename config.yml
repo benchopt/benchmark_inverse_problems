@@ -1,3 +1,0 @@
-data_paths:
-    fastmri_train: /data/parietal/store3/data/fastMRI-multicoil/multicoil_train
-    fastmri_test: /data/parietal/store3/data/fastMRI-multicoil/multicoil_val

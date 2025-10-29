@@ -7,9 +7,7 @@ with safe_import_context() as import_ctx:
     import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
-    import torchvision
     import torch.nn.functional as F
-    from benchmark_utils.metrics import CustomPSNR, CustomSSIM
     from tqdm import tqdm
     import time
 
@@ -116,50 +114,20 @@ class Objective(BaseObjective):
 
             times.append(exec_time)
 
-            if (self.dataset_name == 'FastMRI'):
-                transform = torchvision.transforms.Compose(
-                    [
-                        torchvision.transforms.CenterCrop(x.shape[-2:]),
-                        dinv.metric.functional.complex_abs,
-                    ]
-                )
-
-                CustomPSNR.transform = transform
-
-                transform = torchvision.transforms.Compose(
-                    [
-                        torchvision.transforms.CenterCrop(x.shape[-2:]),
-                    ]
-                )
-
-                CustomSSIM.transform = transform
-
-                psnr.append(CustomPSNR()(x_hat, x))
-            else:
-                psnr.append(dinv.metric.PSNR()(x_hat, x))
-                ssim.append(dinv.metric.SSIM()(x_hat, x))
-                lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
+            psnr.append(dinv.metric.PSNR()(x_hat, x))
+            ssim.append(dinv.metric.SSIM()(x_hat, x))
+            lpips.append(dinv.metric.LPIPS(device=device)(x_hat, x))
 
         psnr = torch.mean(torch.cat(psnr)).item()
         times = torch.mean(torch.tensor(times)).item()
 
         results = dict(PSNR=psnr)
 
-        if self.dataset_name != 'FastMRI':
-            ssim = torch.mean(torch.cat(ssim)).item()
-            lpips = torch.mean(torch.cat(lpips)).item()
-            results['SSIM'] = ssim
-            results['LPIPS'] = lpips
-
         results['Time'] = times
 
         values = dict(
             value=results["PSNR"],
         )
-
-        if self.dataset_name != 'FastMRI':
-            values['ssim'] = results["SSIM"]
-            values['lpips'] = results["LPIPS"]
 
         values['time'] = results["Time"]
 

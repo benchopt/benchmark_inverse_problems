@@ -22,12 +22,14 @@ class Dataset(BaseDataset):
     name = "CBSD68_Set3c"
 
     parameters = {
-        'task': ['denoising',
-                 'gaussian-debluring',
-                 'motion-debluring',
-                 'SRx4',
-                 'inpainting',
-                 'demosaicing'],
+        'task': [
+            'denoising',
+            'gaussian-debluring',
+            'motion-debluring',
+            'SRx4',
+            'inpainting',
+            'demosaicing'
+        ],
         'img_size': [256],
     }
 

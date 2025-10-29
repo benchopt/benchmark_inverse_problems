@@ -5,14 +5,12 @@ with safe_import_context() as import_ctx:
     from torch.utils.data import DataLoader
     import deepinv as dinv
     import numpy as np
-    import torchvision
     from deepinv.optim import BaseOptim
     from deepinv.optim.prior import PnP
     from deepinv.optim.data_fidelity import L2
     from deepinv.optim.optimizers import create_iterator
     from deepinv.optim.dpir import get_DPIR_params
     from benchmark_utils.denoiser_2c import Denoiser_2c
-    from benchmark_utils.metrics import CustomPSNR
     from tqdm import tqdm
 
 
@@ -63,19 +61,7 @@ class Solver(BaseSolver):
 
                 x_hat = model(y, self.physics)
 
-                if (self.dataset_name == 'FastMRI'):
-                    transform = torchvision.transforms.Compose(
-                        [
-                            torchvision.transforms.CenterCrop(x.shape[-2:]),
-                            dinv.metric.functional.complex_abs,
-                        ]
-                    )
-
-                    CustomPSNR.transform = transform
-
-                    psnr.append(CustomPSNR()(x_hat, x))
-                else:
-                    psnr.append(dinv.metric.PSNR()(x_hat, x))
+                psnr.append(dinv.metric.PSNR()(x_hat, x))
 
             psnr = torch.mean(torch.cat(psnr)).item()
 
