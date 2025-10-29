@@ -3,12 +3,11 @@ from benchopt.config import get_data_path
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
-    import torch
     from torchvision import transforms
     from benchmark_utils.hugging_face_torch_dataset import (
         HuggingFaceTorchDataset
     )
-    from benchmark_utils.helper import get_task_physic
+    from benchmark_utils.helper import get_task_physic, get_device
     from datasets import load_dataset
 
 
@@ -31,9 +30,7 @@ class Dataset(BaseDataset):
     requirements = ["datasets"]
 
     def get_data(self):
-        # TODO: Remove
-        device = (
-            dinv.utils.get_freer_gpu()) if torch.cuda.is_available() else "cpu"
+        device = get_device()
 
         n_channels = 3
         img_size = (n_channels, self.img_size, self.img_size)

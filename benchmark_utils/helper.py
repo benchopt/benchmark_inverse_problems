@@ -11,6 +11,20 @@ with safe_import_context() as import_ctx:
     from deepinv.physics.generator import MotionBlurGenerator
 
 
+DEVICE = None
+
+
+def get_device():
+    global DEVICE
+    if DEVICE is not None:
+        return DEVICE
+    if dinv.torch.cuda.is_available():
+        DEVICE = dinv.utils.get_freer_gpu()
+    else:
+        DEVICE = "cpu"
+    return DEVICE
+
+
 def get_task_physic(task, img_size, device):
     if task == "denoising":
         noise_level_img = 0.1

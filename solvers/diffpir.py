@@ -1,10 +1,10 @@
 from benchopt import BaseSolver, safe_import_context
 
 with safe_import_context() as import_ctx:
-    import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
     from benchmark_utils.denoiser_2c import Denoiser_2c
+    from benchmark_utils.helper import get_device
 
 
 class Solver(BaseSolver):
@@ -21,9 +21,7 @@ class Solver(BaseSolver):
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
-        self.device = (
-            dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-        )
+        self.device = get_device()
         self.physics = physics
 
         self.image_size = image_size

@@ -12,6 +12,7 @@ with safe_import_context() as import_ctx:
     from deepinv.optim.dpir import get_DPIR_params
     from benchmark_utils.denoiser_2c import Denoiser_2c
     from tqdm import tqdm
+    from benchmark_utils.helper import get_device
 
 
 class Solver(BaseSolver):
@@ -28,9 +29,7 @@ class Solver(BaseSolver):
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
-        self.device = (
-            dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-        )
+        self.device = get_device()
         self.physics = physics
         self.image_size = image_size
         self.dataset_name = dataset_name
