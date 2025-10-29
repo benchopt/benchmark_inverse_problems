@@ -9,13 +9,7 @@ with safe_import_context() as import_ctx:
     from benchmark_utils.hugging_face_torch_dataset import (
         HuggingFaceTorchDataset
     )
-    from deepinv.physics import (
-        Denoising,
-        GaussianNoise,
-        Downsampling,
-        Demosaicing
-    )
-    from deepinv.physics.generator import MotionBlurGenerator
+    from benchmark_utils.helper import get_task_physic
 
 
 class Dataset(BaseDataset):
@@ -44,47 +38,7 @@ class Dataset(BaseDataset):
         n_channels = 3
         img_size = (n_channels, self.img_size, self.img_size)
 
-        if self.task == "denoising":
-            noise_level_img = 0.1
-            physics = Denoising(GaussianNoise(sigma=noise_level_img))
-        elif self.task == "gaussian-debluring":
-            filter_torch = dinv.physics.blur.gaussian_blur(sigma=(3, 3))
-            noise_level_img = 0.03
-
-            physics = dinv.physics.BlurFFT(
-                img_size=img_size,
-                filter=filter_torch,
-                noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-                device=device
-            )
-        elif self.task == "motion-debluring":
-            psf_size = 31
-            motion_generator = MotionBlurGenerator(
-                (psf_size, psf_size),
-                device=device
-            )
-
-            filters = motion_generator.step(batch_size=1)
-
-            physics = dinv.physics.BlurFFT(
-                img_size=img_size,
-                filter=filters["filter"],
-                device=device
-            )
-        elif self.task == "SRx4":
-            physics = Downsampling(img_size=img_size,
-                                   filter="bicubic",
-                                   factor=4,
-                                   device=device)
-        elif self.task == "inpainting":
-            physics = dinv.physics.Inpainting(img_size,
-                                              mask=0.7,
-                                              device=device)
-        elif self.task == "demosaicing":
-            physics = Demosaicing(img_size=img_size,
-                                  device=device)
-        else:
-            raise Exception("Unknown task")
+        physics = get_task_physic(self.task, img_size, device)
 
         transform = transforms.Compose([
             transforms.Resize((self.img_size, self.img_size)),
