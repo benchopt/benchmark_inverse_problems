@@ -106,7 +106,8 @@ class Dataset(BaseDataset):
             dataset_cbsd68["train"],
             key="png",
             physics=physics,
-            device=device
+            device=device,
+            transform=transform
         )
 
         return dict(
