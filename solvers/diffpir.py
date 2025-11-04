@@ -1,9 +1,10 @@
 from benchopt import BaseSolver, safe_import_context
 
 with safe_import_context() as import_ctx:
-    import torch
     from torch.utils.data import DataLoader
     import deepinv as dinv
+    from benchmark_utils.denoiser_2c import Denoiser_2c
+    from benchmark_utils.helper import get_device
 
 
 class Solver(BaseSolver):
@@ -15,24 +16,30 @@ class Solver(BaseSolver):
 
     requirements = []
 
-    def set_objective(self, train_dataset, physics):
-        batch_size = 2
+    def set_objective(self, train_dataset, physics, image_size, batch_size):
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
-        self.device = (
-            dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-        )
+        self.device = get_device()
         self.physics = physics
 
+        self.image_size = image_size
+
     def run(self, n_iter):
-        denoiser = dinv.models.DRUNet(pretrained="download").to(self.device)
+        if self.image_size[0] == 2:
+            denoiser = Denoiser_2c(device=self.device)
+        else:
+            denoiser = dinv.models.DRUNet(
+                pretrained="download",
+                device=self.device
+            )
 
         self.model = dinv.sampling.DiffPIR(
             model=denoiser,
             data_fidelity=dinv.optim.data_fidelity.L2(),
             device=self.device
         )
+
         self.model.eval()
 
     def get_result(self):
