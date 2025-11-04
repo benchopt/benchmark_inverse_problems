@@ -3,7 +3,6 @@ from benchopt import BaseSolver, safe_import_context
 
 with safe_import_context() as import_ctx:
     import torch
-    import torch.nn.functional as F
     from torch.utils.data import DataLoader
     import deepinv as dinv
     from benchmark_utils.helper import get_device
@@ -34,10 +33,8 @@ class Solver(BaseSolver):
     def run(self, n_iter):
         epochs = 4
 
-        x, y = next(iter(self.train_dataloader))
-
         model = dinv.models.UNet(
-            in_channels=y.shape[1], out_channels=x.shape[1], scales=4,
+            in_channels=3, out_channels=3, scales=4,
             batch_norm=False
         ).to(self.device)
 
@@ -50,49 +47,22 @@ class Solver(BaseSolver):
 
         criterion = dinv.loss.SupLoss(metric=dinv.metric.MSE())
 
-        for epoch in range(epochs):
-            model.train()
-            running_loss = 0.0
+        trainer = dinv.Trainer(
+            model,
+            device=self.device,
+            verbose=True,
+            wandb_vis=False,
+            physics=self.physics,
+            epochs=epochs,
+            scheduler=scheduler,
+            losses=criterion,
+            optimizer=optimizer,
+            show_progress_bar=True,
+            train_dataloader=self.train_dataloader,
+        )
 
-            for x, y in self.train_dataloader:
-                x, y = x.to(self.device), y.to(self.device)
-
-                if type(self.physics) is dinv.physics.blur.Downsampling:
-                    _, _, x_h, x_w = x.shape
-                    _, _, y_h, y_w = y.shape
-
-                    diff_h = x_h - y_h
-                    diff_w = x_w - y_w
-
-                    pad_top = diff_h // 2
-                    pad_bottom = diff_h - pad_top
-                    pad_left = diff_w // 2
-                    pad_right = diff_w - pad_left
-
-                    y = F.pad(
-                        y,
-                        pad=(pad_left, pad_right, pad_top, pad_bottom),
-                        value=0
-                    )
-
-                x_hat = model(y, self.physics)
-
-                loss = criterion(x_hat, x)
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-                running_loss += loss.item()
-
-            avg_loss = running_loss / len(self.train_dataloader)
-            print(f"Epoch [{epoch + 1}/{epochs}], Loss: {avg_loss:.4f}")
-
-            scheduler.step()
-
-        model.eval()
-
-        self.model = model
+        self.model = trainer.train()
+        self.model.eval()
 
     def get_result(self):
         return dict(

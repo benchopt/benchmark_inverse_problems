@@ -6,7 +6,9 @@ with safe_import_context() as import_ctx:
         Denoising,
         GaussianNoise,
         Downsampling,
-        Demosaicing
+        Demosaicing,
+        BlurFFT,
+        Inpainting
     )
     from deepinv.physics.generator import MotionBlurGenerator
 
@@ -33,10 +35,10 @@ def get_task_physic(task, img_size, device):
         filter_torch = dinv.physics.blur.gaussian_blur(sigma=(3, 3))
         noise_level_img = 0.03
 
-        physics = dinv.physics.BlurFFT(
+        physics = BlurFFT(
             img_size=img_size,
             filter=filter_torch,
-            noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+            noise_model=GaussianNoise(sigma=noise_level_img),
             device=device
         )
     elif task == "motion-debluring":
@@ -48,7 +50,7 @@ def get_task_physic(task, img_size, device):
 
         filters = motion_generator.step(batch_size=1)
 
-        physics = dinv.physics.BlurFFT(
+        physics = BlurFFT(
             img_size=img_size,
             filter=filters["filter"],
             device=device
@@ -61,7 +63,7 @@ def get_task_physic(task, img_size, device):
             device=device
         )
     elif task == "inpainting":
-        physics = dinv.physics.Inpainting(
+        physics = Inpainting(
             img_size,
             mask=0.7,
             device=device
