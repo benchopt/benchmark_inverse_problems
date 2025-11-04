@@ -18,15 +18,13 @@ class Solver(BaseSolver):
 
     requirements = []
 
-    def set_objective(self, train_dataset, physics, image_size, dataset_name):
-        batch_size = 1
+    def set_objective(self, train_dataset, physics, image_size, batch_size):
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
         self.device = get_device()
         self.physics = physics
         self.image_size = image_size
-        self.dataset_name = dataset_name
 
     def run(self, n_iter):
         best_sigma = 0

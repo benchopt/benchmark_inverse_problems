@@ -47,7 +47,8 @@ class Objective(BaseObjective):
                  physics,
                  dataset_name,
                  task_name,
-                 image_size):
+                 image_size,
+                 batch_size):
         # The keyword arguments of this function are the keys of the dictionary
         # returned by `Dataset.get_data`. This defines the benchmark's
         # API to pass data. This is customizable for each benchmark.
@@ -57,6 +58,7 @@ class Objective(BaseObjective):
         self.dataset_name = dataset_name
         self.task_name = task_name
         self.image_size = image_size
+        self.batch_size = batch_size
 
     def evaluate_result(self, model, model_name, device):
         # The keyword arguments of this function are the keys of the
@@ -64,9 +66,8 @@ class Objective(BaseObjective):
         # benchmark's API to pass solvers' result. This is customizable for
         # each benchmark.
 
-        batch_size = 1
         test_dataloader = DataLoader(
-            self.test_dataset, batch_size=batch_size, shuffle=False
+            self.test_dataset, batch_size=self.batch_size, shuffle=False
         )
 
         # DeepImagePrior use images one by one, thus we can't use dinv.test
@@ -88,7 +89,7 @@ class Objective(BaseObjective):
                 x_hat = torch.cat(x_hat)
             else:
                 if (
-                    type(self.physics) is dinv.physics.blur.Downsampling
+                    isinstance(self.physics, dinv.physics.blur.Downsampling)
                     and model_name == 'U-Net'
                 ):
                     _, _, x_h, x_w = x.shape
@@ -146,7 +147,9 @@ class Objective(BaseObjective):
         # benchmark's API for passing the objective to the solver.
         # It is customizable for each benchmark.
 
-        return dict(train_dataset=self.train_dataset,
-                    physics=self.physics,
-                    image_size=self.image_size,
-                    dataset_name=self.dataset_name,)
+        return dict(
+            train_dataset=self.train_dataset,
+            physics=self.physics,
+            image_size=self.image_size,
+            batch_size=self.batch_size
+        )

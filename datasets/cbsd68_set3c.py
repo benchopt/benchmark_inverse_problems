@@ -23,6 +23,7 @@ class Dataset(BaseDataset):
             'demosaicing'
         ],
         'img_size': [256],
+        'batch_size': [2]
     }
 
     requirements = ["datasets"]
@@ -64,5 +65,6 @@ class Dataset(BaseDataset):
             physics=physics,
             dataset_name="Set3c",
             task_name=self.task,
-            image_size=image_size
+            image_size=image_size,
+            batch_size=self.batch_size
         )

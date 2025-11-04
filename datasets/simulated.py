@@ -26,5 +26,6 @@ class Dataset(BaseDataset):
             physics=Denoising(GaussianNoise(sigma=0.03)),
             dataset_name="simulated",
             task_name="test",
-            image_size=(3, 32, 32)
+            image_size=(3, 32, 32),
+            batch_size=4
         )

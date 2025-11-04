@@ -17,9 +17,8 @@ class Solver(BaseSolver):
 
     requirements = ["optuna"]
 
-    def set_objective(self, train_dataset, physics, image_size, dataset_name):
+    def set_objective(self, train_dataset, physics, image_size, batch_size):
         self.train_dataset = train_dataset
-        batch_size = 1
         self.train_dataloader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=False
         )
